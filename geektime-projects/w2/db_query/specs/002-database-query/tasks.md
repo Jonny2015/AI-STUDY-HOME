@@ -24,18 +24,18 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create backend and frontend directory structure per implementation plan
-- [ ] T002 Initialize backend uv project with Python 3.11+ in backend/pyproject.toml
-- [ ] T003 Initialize frontend npm project in frontend/package.json
-- [ ] T004 [P] Install backend dependencies: FastAPI, uvicorn, Pydantic V2, sqlglot, openai, aiosqlite, asyncpg, aiomysql in backend/pyproject.toml
-- [ ] T005 [P] Install frontend dependencies: React 18, Refine 5, Ant Design, Tailwind CSS, Monaco Editor, Vite in frontend/package.json
-- [ ] T006 [P] Install backend dev dependencies: black, ruff, mypy, pytest, pytest-asyncio, httpx in backend/pyproject.toml
-- [ ] T007 [P] Install frontend dev dependencies: Playwright, TypeScript types in frontend/package.json
-- [ ] T008 [P] Configure backend mypy strict mode in backend/pyproject.toml
-- [ ] T009 [P] Configure frontend TypeScript strict mode in frontend/tsconfig.json
-- [ ] T010 [P] Create .env.example template in backend/.env.example with OPENAI_API_KEY placeholder
-- [ ] T011 [P] Create README.md in backend/README.md with setup instructions
-- [ ] T012 [P] Create README.md in frontend/README.md with setup instructions
+- [X] T001 Create backend and frontend directory structure per implementation plan
+- [X] T002 Initialize backend uv project with Python 3.11+ in backend/pyproject.toml
+- [X] T003 Initialize frontend npm project in frontend/package.json
+- [X] T004 [P] Install backend dependencies: FastAPI, uvicorn, Pydantic V2, sqlglot, openai, aiosqlite, asyncpg, aiomysql in backend/pyproject.toml
+- [X] T005 [P] Install frontend dependencies: React 18, Refine 5, Ant Design, Tailwind CSS, Monaco Editor, Vite in frontend/package.json
+- [X] T006 [P] Install backend dev dependencies: black, ruff, mypy, pytest, pytest-asyncio, httpx in backend/pyproject.toml
+- [X] T007 [P] Install frontend dev dependencies: Playwright, TypeScript types in frontend/package.json
+- [X] T008 [P] Configure backend mypy strict mode in backend/pyproject.toml
+- [X] T009 [P] Configure frontend TypeScript strict mode in frontend/tsconfig.json
+- [X] T010 [P] Create .env.example template in backend/.env.example with OPENAI_API_KEY placeholder
+- [X] T011 [P] Create README.md in backend/README.md with setup instructions
+- [X] T012 [P] Create README.md in frontend/README.md with setup instructions
 
 ---
 
@@ -47,24 +47,24 @@
 
 ### Backend Foundation
 
-- [ ] T013 Create FastAPI application entry point in backend/app/main.py with CORS middleware (allow all origins)
-- [ ] T014 [P] Create configuration management module in backend/app/config.py to load OPENAI_API_KEY from environment
-- [ ] T015 [P] Create SQLite database management module in backend/app/core/db.py to initialize ~/.db_query/db_query.db with databases and metadata tables
-- [ ] T016 [P] Create SQL parser module in backend/app/core/sql_parser.py using sqlglot for validation and LIMIT injection
-- [ ] T017 [P] Create security module in backend/app/core/security.py for URL validation and password masking
-- [ ] T018 [P] Create logging utility in backend/app/utils/logging.py with structured logging setup
-- [ ] T019 [P] Create base DatabaseAdapter abstract class in backend/app/adapters/base.py with connect, get_metadata, execute_query methods
-- [ ] T020 [P] Create AdapterRegistry in backend/app/adapters/registry.py with register and get_adapter methods
-- [ ] T021 [P] Create error response Pydantic model in backend/app/models/errors.py (ErrorResponse with camelCase)
-- [ ] T022 Create global exception handler in backend/app/main.py to convert exceptions to ErrorResponse
+- [X] T013 Create FastAPI application entry point in backend/app/main.py with CORS middleware (allow all origins)
+- [X] T014 [P] Create configuration management module in backend/app/config.py to load OPENAI_API_KEY from environment
+- [X] T015 [P] Create SQLite database management module in backend/app/core/db.py to initialize ~/.db_query/db_query.db with databases and metadata tables
+- [X] T016 [P] Create SQL parser module in backend/app/core/sql_parser.py using sqlglot for validation and LIMIT injection
+- [X] T017 [P] Create security module in backend/app/core/security.py for URL validation and password masking
+- [X] T018 [P] Create logging utility in backend/app/utils/logging.py with structured logging setup
+- [X] T019 [P] Create base DatabaseAdapter abstract class in backend/app/adapters/base.py with connect, get_metadata, execute_query methods
+- [X] T020 [P] Create AdapterRegistry in backend/app/adapters/registry.py with register and get_adapter methods
+- [X] T021 [P] Create error response Pydantic model in backend/app/models/errors.py (ErrorResponse with camelCase)
+- [X] T022 Create global exception handler in backend/app/main.py to convert exceptions to ErrorResponse
 
 ### Frontend Foundation
 
-- [ ] T023 [P] Create API service client in frontend/src/services/api.ts with axios instance configured for /api/v1
-- [ ] T024 [P] Create TypeScript type definitions in frontend/src/types/index.ts mirroring backend Pydantic models (Database, TableMetadata, ColumnMetadata, QueryResult, etc.)
-- [ ] T025 [P] Create Refine app setup in frontend/src/App.tsx with basic routing structure
-- [ ] T026 [P] Create Tailwind CSS configuration in frontend/tailwind.config.js
-- [ ] T027 [P] Create Vite configuration in frontend/vite.config.ts with proxy setup for backend API
+- [X] T023 [P] Create API service client in frontend/src/services/api.ts with axios instance configured for /api/v1
+- [X] T024 [P] Create TypeScript type definitions in frontend/src/types/index.ts mirroring backend Pydantic models (Database, TableMetadata, ColumnMetadata, QueryResult, etc.)
+- [X] T025 [P] Create Refine app setup in frontend/src/App.tsx with basic routing structure
+- [X] T026 [P] Create Tailwind CSS configuration in frontend/tailwind.config.js
+- [X] T027 [P] Create Vite configuration in frontend/vite.config.ts with proxy setup for backend API
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -81,24 +81,24 @@
 
 ### Backend Implementation for US1
 
-- [ ] T028 [P] [US1] Create DatabaseResponse Pydantic model in backend/app/models/database.py with camelCase aliases
-- [ ] T029 [P] [US1] Create DatabaseListResponse Pydantic model in backend/app/models/database.py with camelCase aliases
-- [ ] T030 [P] [US1] Create AddDatabaseRequest Pydantic model in backend/app/models/database.py with URL validation
-- [ ] T031 [P] [US1] Create PostgreSQLAdapter in backend/app/adapters/postgresql.py implementing DatabaseAdapter (connect, get_metadata, execute_query)
-- [ ] T032 [P] [US1] Create MySQLAdapter in backend/app/adapters/mysql.py implementing DatabaseAdapter (connect, get_metadata, execute_query)
-- [ ] T033 [P] [US1] Register adapters in backend/app/adapters/registry.py for postgresql and mysql types
-- [ ] T034 [P] [US1] Create DatabaseService facade in backend/app/services/database_service.py with add_database, list_databases, delete_database, test_connection methods
-- [ ] T035 [US1] Implement GET /api/v1/dbs endpoint in backend/app/api/v1/databases.py (router setup and list_databases handler)
-- [ ] T036 [US1] Implement PUT /api/v1/dbs/{name} endpoint in backend/app/api/v1/databases.py (add_database handler with connection validation)
-- [ ] T037 [US1] Implement DELETE /api/v1/dbs/{name} endpoint in backend/app/api/v1/databases.py (delete_database handler)
-- [ ] T038 [US1] Register databases router in backend/app/main.py with /api/v1 prefix
+- [X] T028 [P] [US1] Create DatabaseResponse Pydantic model in backend/app/models/database.py with camelCase aliases
+- [X] T029 [P] [US1] Create DatabaseListResponse Pydantic model in backend/app/models/database.py with camelCase aliases
+- [X] T030 [P] [US1] Create AddDatabaseRequest Pydantic model in backend/app/models/database.py with URL validation
+- [X] T031 [P] [US1] Create PostgreSQLAdapter in backend/app/adapters/postgresql.py implementing DatabaseAdapter (connect, get_metadata, execute_query)
+- [X] T032 [P] [US1] Create MySQLAdapter in backend/app/adapters/mysql.py implementing DatabaseAdapter (connect, get_metadata, execute_query)
+- [X] T033 [P] [US1] Register adapters in backend/app/adapters/registry.py for postgresql and mysql types
+- [X] T034 [P] [US1] Create DatabaseService facade in backend/app/services/database_service.py with add_database, list_databases, delete_database, test_connection methods
+- [X] T035 [US1] Implement GET /api/v1/dbs endpoint in backend/app/api/v1/databases.py (router setup and list_databases handler)
+- [X] T036 [US1] Implement PUT /api/v1/dbs/{name} endpoint in backend/app/api/v1/databases.py (add_database handler with connection validation)
+- [X] T037 [US1] Implement DELETE /api/v1/dbs/{name} endpoint in backend/app/api/v1/databases.py (delete_database handler)
+- [X] T038 [US1] Register databases router in backend/app/main.py with /api/v1 prefix
 
 ### Frontend Implementation for US1
 
-- [ ] T039 [P] [US1] Create DatabaseList component in frontend/src/components/DatabaseList.tsx using Refine's useList hook
-- [ ] T040 [P] [US1] Create AddDatabaseModal component in frontend/src/components/AddDatabaseModal.tsx with form validation
-- [ ] T041 [US1] Create Dashboard page in frontend/src/pages/Dashboard.tsx integrating DatabaseList and AddDatabaseModal
-- [ ] T042 [US1] Add Dashboard route to frontend/src/App.tsx
+- [X] T039 [P] [US1] Create DatabaseList component in frontend/src/components/DatabaseList.tsx using Refine's useList hook
+- [X] T040 [P] [US1] Create AddDatabaseModal component in frontend/src/components/AddDatabaseModal.tsx with form validation
+- [X] T041 [US1] Create Dashboard page in frontend/src/pages/Dashboard.tsx integrating DatabaseList and AddDatabaseModal
+- [X] T042 [US1] Add Dashboard route to frontend/src/App.tsx
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can manage database connections independently
 
@@ -115,17 +115,17 @@
 
 ### Backend Implementation for US2
 
-- [ ] T043 [P] [US2] Create ColumnMetadata Pydantic model in backend/app/models/metadata.py with camelCase aliases
-- [ ] T044 [P] [US2] Create TableMetadata Pydantic model in backend/app/models/metadata.py with camelCase aliases
-- [ ] T045 [P] [US2] Create DatabaseMetadataResponse Pydantic model in backend/app/models/metadata.py with camelCase aliases
-- [ ] T046 [P] [US2] Create MetadataService in backend/app/services/metadata_service.py with extract_metadata, get_cached_metadata, refresh_metadata methods
-- [ ] T047 [US2] Implement GET /api/v1/dbs/{name} endpoint in backend/app/api/v1/databases.py (get_metadata handler with caching and refresh support)
+- [X] T043 [P] [US2] Create ColumnMetadata Pydantic model in backend/app/models/metadata.py with camelCase aliases
+- [X] T044 [P] [US2] Create TableMetadata Pydantic model in backend/app/models/metadata.py with camelCase aliases
+- [X] T045 [P] [US2] Create DatabaseMetadataResponse Pydantic model in backend/app/models/metadata.py with camelCase aliases
+- [X] T046 [P] [US2] Create MetadataService in backend/app/services/metadata_service.py with extract_metadata, get_cached_metadata, refresh_metadata methods
+- [X] T047 [US2] Implement GET /api/v1/dbs/{name} endpoint in backend/app/api/v1/databases.py (get_metadata handler with caching and refresh support)
 
 ### Frontend Implementation for US2
 
-- [ ] T048 [P] [US2] Create MetadataViewer component in frontend/src/components/MetadataViewer.tsx with expandable table/column tree
-- [ ] T049 [US2] Integrate MetadataViewer into Dashboard page in frontend/src/pages/Dashboard.tsx to show metadata when database selected
-- [ ] T050 [US2] Add refresh button to MetadataViewer in frontend/src/components/MetadataViewer.tsx
+- [X] T048 [P] [US2] Create MetadataViewer component in frontend/src/components/MetadataViewer.tsx with expandable table/column tree
+- [X] T049 [US2] Integrate MetadataViewer into Dashboard page in frontend/src/pages/Dashboard.tsx to show metadata when database selected
+- [X] T050 [US2] Add refresh button to MetadataViewer in frontend/src/components/MetadataViewer.tsx
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - users can manage connections and view metadata
 
@@ -143,21 +143,21 @@
 
 ### Backend Implementation for US3
 
-- [ ] T051 [P] [US3] Create ExecuteQueryRequest Pydantic model in backend/app/models/query.py with SQL field
-- [ ] T052 [P] [US3] Create QueryResult Pydantic model in backend/app/models/query.py with camelCase aliases (columns, rows, rowCount, executionTimeMs)
-- [ ] T053 [P] [US3] Create QueryService in backend/app/services/query_service.py with validate_sql, execute_query methods
-- [ ] T054 [US3] Implement SQL validation in backend/app/services/query_service.py using sqlglot (SELECT-only check, LIMIT injection)
-- [ ] T055 [US3] Implement query execution in backend/app/services/query_service.py with 60-second timeout via AdapterRegistry
-- [ ] T056 [US3] Implement POST /api/v1/dbs/{name}/query endpoint in backend/app/api/v1/queries.py (execute_query handler)
-- [ ] T057 [US3] Register queries router in backend/app/main.py with /api/v1 prefix
+- [X] T051 [P] [US3] Create ExecuteQueryRequest Pydantic model in backend/app/models/query.py with SQL field
+- [X] T052 [P] [US3] Create QueryResult Pydantic model in backend/app/models/query.py with camelCase aliases (columns, rows, rowCount, executionTimeMs)
+- [X] T053 [P] [US3] Create QueryService in backend/app/services/query_service.py with validate_sql, execute_query methods
+- [X] T054 [US3] Implement SQL validation in backend/app/services/query_service.py using sqlglot (SELECT-only check, LIMIT injection)
+- [X] T055 [US3] Implement query execution in backend/app/services/query_service.py with 60-second timeout via AdapterRegistry
+- [X] T056 [US3] Implement POST /api/v1/dbs/{name}/query endpoint in backend/app/api/v1/queries.py (execute_query handler)
+- [X] T057 [US3] Register queries router in backend/app/main.py with /api/v1 prefix
 
 ### Frontend Implementation for US3
 
-- [ ] T058 [P] [US3] Create SqlEditor component in frontend/src/components/SqlEditor.tsx using Monaco Editor with SQL language
-- [ ] T059 [P] [US3] Create QueryResult component in frontend/src/components/QueryResult.tsx with table display and pagination
-- [ ] T060 [US3] Create QueryPage in frontend/src/pages/QueryPage.tsx integrating SqlEditor and QueryResult
-- [ ] T061 [US3] Add QueryPage route to frontend/src/App.tsx
-- [ ] T062 [US3] Add execute button and error display to QueryPage in frontend/src/pages/QueryPage.tsx
+- [X] T058 [P] [US3] Create SqlEditor component in frontend/src/components/SqlEditor.tsx using Monaco Editor with SQL language
+- [X] T059 [P] [US3] Create QueryResult component in frontend/src/components/QueryResult.tsx with table display and pagination
+- [X] T060 [US3] Create QueryPage in frontend/src/pages/QueryPage.tsx integrating SqlEditor and QueryResult
+- [X] T061 [US3] Add QueryPage route to frontend/src/App.tsx
+- [X] T062 [US3] Add execute button and error display to QueryPage in frontend/src/pages/QueryPage.tsx
 
 **Checkpoint**: At this point, Users 1, 2, AND 3 should work - users can manage connections, view metadata, and execute queries
 
@@ -174,14 +174,14 @@
 
 ### Backend Implementation for US5
 
-- [ ] T063 [P] [US5] Add CSV export method to QueryService in backend/app/services/query_service.py to convert QueryResult to CSV format
-- [ ] T064 [US5] Implement GET /api/v1/dbs/{name}/query/export endpoint in backend/app/api/v1/queries.py (export_query handler with CSV download)
+- [X] T063 [P] [US5] Add CSV export method to QueryService in backend/app/services/query_service.py to convert QueryResult to CSV format
+- [X] T064 [US5] Implement GET /api/v1/dbs/{name}/query/export endpoint in backend/app/api/v1/queries.py (export_query handler with CSV download)
 
 ### Frontend Implementation for US5
 
-- [ ] T065 [P] [US5] Add pagination to QueryResult component in frontend/src/components/QueryResult.tsx
-- [ ] T066 [US5] Add export CSV button to QueryResult component in frontend/src/components/QueryResult.tsx
-- [ ] T067 [US5] Add empty state display to QueryResult component in frontend/src/components/QueryResult.tsx
+- [X] T065 [P] [US5] Add pagination to QueryResult component in frontend/src/components/QueryResult.tsx
+- [X] T066 [US5] Add export CSV button to QueryResult component in frontend/src/components/QueryResult.tsx
+- [X] T067 [US5] Add empty state display to QueryResult component in frontend/src/components/QueryResult.tsx
 
 **Checkpoint**: At this point, Users 1, 2, 3, AND 5 should work - users can manage connections, view metadata, execute queries, and export results
 
@@ -198,18 +198,18 @@
 
 ### Backend Implementation for US4
 
-- [ ] T068 [P] [US4] Create NaturalLanguageQueryRequest Pydantic model in backend/app/models/query.py with prompt field
-- [ ] T069 [P] [US4] Create GeneratedSQLResponse Pydantic model in backend/app/models/query.py with camelCase aliases (sql, explanation, warnings)
-- [ ] T070 [P] [US4] Create LLMService in backend/app/services/llm_service.py with generate_sql method using OpenAI SDK
-- [ ] T071 [US4] Implement context building in LLMService to include database metadata in system message
-- [ ] T072 [US4] Implement SQL validation of generated SQL in LLMService using sqlglot
-- [ ] T073 [US4] Implement POST /api/v1/dbs/{name}/query/natural endpoint in backend/app/api/v1/queries.py (generate_sql handler)
+- [X] T068 [P] [US4] Create NaturalLanguageQueryRequest Pydantic model in backend/app/models/query.py with prompt field
+- [X] T069 [P] [US4] Create GeneratedSQLResponse Pydantic model in backend/app/models/query.py with camelCase aliases (sql, explanation, warnings)
+- [X] T070 [P] [US4] Create LLMService in backend/app/services/llm_service.py with generate_sql method using OpenAI SDK
+- [X] T071 [US4] Implement context building in LLMService to include database metadata in system message
+- [X] T072 [US4] Implement SQL validation of generated SQL in LLMService using sqlglot
+- [X] T073 [US4] Implement POST /api/v1/dbs/{name}/query/natural endpoint in backend/app/api/v1/queries.py (generate_sql handler)
 
 ### Frontend Implementation for US4
 
-- [ ] T074 [P] [US4] Create NaturalLanguageInput component in frontend/src/components/NaturalLanguageInput.tsx with textarea and submit button
-- [ ] T075 [US4] Integrate NaturalLanguageInput into QueryPage in frontend/src/pages/QueryPage.tsx to populate SqlEditor on generation
-- [ ] T076 [US4] Add loading state and error handling for AI generation in frontend/src/pages/QueryPage.tsx
+- [X] T074 [P] [US4] Create NaturalLanguageInput component in frontend/src/components/NaturalLanguageInput.tsx with textarea and submit button
+- [X] T075 [US4] Integrate NaturalLanguageInput into QueryPage in frontend/src/pages/QueryPage.tsx to populate SqlEditor on generation
+- [X] T076 [US4] Add loading state and error handling for AI generation in frontend/src/pages/QueryPage.tsx
 
 **Checkpoint**: All user stories should now be independently functional - complete feature set ready
 

@@ -34,7 +34,7 @@ setup: install-backend install-frontend db-init
 # 安装后端依赖
 install-backend:
 	@echo "安装后端依赖..."
-	cd backend && uv sync
+	cd backend && uv sync --extra dev
 
 # 安装前端依赖
 install-frontend:
