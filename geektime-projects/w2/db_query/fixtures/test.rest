@@ -1,0 +1,353 @@
+### Database Query Tool API 测试文件
+### 使用 VSCode REST Client 扩展进行测试
+### 安装扩展: https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+###
+### 基于 OpenAPI 规范: specs/002-database-query/contracts/openapi.yaml
+
+@baseUrl = http://localhost:8000
+@apiPrefix = {{baseUrl}}/api/v1
+
+### 变量定义
+@dbName = test_db
+@mysqlDbName = interview_db
+@postgresUrl = postgresql://postgres:123456@localhost:5432/{{dbName}}
+@mysqlUrl = mysql://root@localhost:3306/interview_db
+
+##########################################
+# 健康检查
+##########################################
+
+### 健康检查
+GET {{baseUrl}}/health
+
+##########################################
+# 数据库管理 API
+##########################################
+
+### 1. 获取所有数据库列表
+GET {{apiPrefix}}/dbs
+
+### 2. 添加 PostgreSQL 数据库 (PUT 方式)
+PUT {{apiPrefix}}/dbs/{{dbName}}
+Content-Type: application/json
+
+{
+  "url": "{{postgresUrl}}"
+}
+
+### 3. 添加 MySQL 数据库 (PUT 方式)
+PUT {{apiPrefix}}/dbs/{{mysqlDbName}}
+Content-Type: application/json
+
+{
+  "url": "{{mysqlUrl}}"
+}
+
+### 4. 获取数据库元数据（使用缓存）
+GET {{apiPrefix}}/dbs/{{dbName}}
+
+### 5. 获取数据库元数据（强制刷新）
+GET {{apiPrefix}}/dbs/{{dbName}}?refresh=true
+
+### 6. 获取 MySQL 数据库元数据
+GET {{apiPrefix}}/dbs/{{mysqlDbName}}
+
+### 7. 删除数据库
+DELETE {{apiPrefix}}/dbs/{{dbName}}
+
+##########################################
+# SQL 查询 API
+##########################################
+
+### 8. 执行简单 SQL 查询
+POST {{apiPrefix}}/dbs/{{dbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT 1 as test_column"
+}
+
+### 9. 查询 PostgreSQL 数据库表
+POST {{apiPrefix}}/dbs/{{dbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM information_schema.tables WHERE table_schema = 'public' LIMIT 10"
+}
+
+### 10. 查询 MySQL 数据库表
+POST {{apiPrefix}}/dbs/{{mysqlDbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "SHOW TABLES"
+}
+
+### 11. 查询 MySQL todos 表数据
+POST {{apiPrefix}}/dbs/{{mysqlDbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM todos LIMIT 10"
+}
+
+### 12. 测试自动添加 LIMIT（不包含 LIMIT 的查询）
+POST {{apiPrefix}}/dbs/{{dbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM information_schema.tables WHERE table_schema = 'public'"
+}
+
+### 13. 测试复杂 JOIN 查询
+POST {{apiPrefix}}/dbs/{{dbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT table_name, table_type FROM information_schema.tables WHERE table_schema = 'public' LIMIT 5"
+}
+
+### 14. 测试 MySQL 复杂查询
+POST {{apiPrefix}}/dbs/{{mysqlDbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM todos LIMIT 5"
+}
+
+##########################################
+# 自然语言生成 SQL API
+##########################################
+
+### 15. 使用自然语言生成 SQL (PostgreSQL)
+POST {{apiPrefix}}/dbs/{{dbName}}/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "查询所有表名"
+}
+
+### 16. 使用自然语言生成 SQL (PostgreSQL) - 复杂查询
+POST {{apiPrefix}}/dbs/{{dbName}}/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "查询 public schema 下所有表的名称和类型"
+}
+
+### 17. 使用自然语言生成 SQL (MySQL)
+POST {{apiPrefix}}/dbs/{{mysqlDbName}}/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "查询 todos 表的所有数据"
+}
+
+### 18. 使用自然语言生成 SQL (MySQL) - 条件查询
+POST {{apiPrefix}}/dbs/{{mysqlDbName}}/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "查询 todos 表中前 10 条记录"
+}
+
+### 19. 使用自然语言生成复杂查询 SQL
+POST {{apiPrefix}}/dbs/{{mysqlDbName}}/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "查询所有活跃用户"
+}
+
+### 20. 使用自然语言生成 JOIN 查询 SQL
+POST {{apiPrefix}}/dbs/{{dbName}}/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "显示销售额超过1000的订单，包括客户姓名和订单日期"
+}
+
+##########################################
+# 错误测试用例
+##########################################
+
+### 21. 测试无效的 SQL 语法
+POST {{apiPrefix}}/dbs/{{dbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM invalid_table WHERE"
+}
+
+### 22. 测试非 SELECT 语句（应该被拒绝）
+POST {{apiPrefix}}/dbs/{{dbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "INSERT INTO test_table VALUES (1, 'test')"
+}
+
+### 23. 测试 DELETE 语句（应该被拒绝）
+POST {{apiPrefix}}/dbs/{{dbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "DELETE FROM test_table WHERE id = 1"
+}
+
+### 24. 测试 UPDATE 语句（应该被拒绝）
+POST {{apiPrefix}}/dbs/{{dbName}}/query
+Content-Type: application/json
+
+{
+  "sql": "UPDATE test_table SET name = 'test' WHERE id = 1"
+}
+
+### 25. 测试不存在的数据库
+GET {{apiPrefix}}/dbs/non_existent_db
+
+### 26. 测试无效的数据库 URL
+PUT {{apiPrefix}}/dbs/invalid_db
+Content-Type: application/json
+
+{
+  "url": "invalid://url"
+}
+
+### 27. 测试空 SQL 查询
+POST {{apiPrefix}}/dbs/{{dbName}}/query
+Content-Type: application/json
+
+{
+  "sql": ""
+}
+
+### 28. 测试空自然语言提示
+POST {{apiPrefix}}/dbs/{{dbName}}/query/natural
+Content-Type: application/json
+
+{
+  "prompt": ""
+}
+
+### 29. 测试重复的数据库名称（409 Conflict）
+PUT {{apiPrefix}}/dbs/{{dbName}}
+Content-Type: application/json
+
+{
+  "url": "{{postgresUrl}}"
+}
+
+### 30. 测试无效的数据库名称格式
+PUT {{apiPrefix}}/dbs/invalid db name!
+Content-Type: application/json
+
+{
+  "url": "{{postgresUrl}}"
+}
+
+##########################################
+# 完整工作流测试
+##########################################
+
+### 工作流 1: PostgreSQL 完整流程
+
+#### Step 1: 添加数据库
+PUT {{apiPrefix}}/dbs/workflow_pg
+Content-Type: application/json
+
+{
+  "url": "{{postgresUrl}}"
+}
+
+#### Step 2: 获取元数据
+GET {{apiPrefix}}/dbs/workflow_pg
+
+#### Step 3: 执行查询
+POST {{apiPrefix}}/dbs/workflow_pg/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT version()"
+}
+
+#### Step 4: 自然语言生成 SQL
+POST {{apiPrefix}}/dbs/workflow_pg/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "查询 PostgreSQL 版本"
+}
+
+### 工作流 2: MySQL 完整流程
+
+#### Step 1: 添加 MySQL 数据库
+PUT {{apiPrefix}}/dbs/workflow_mysql
+Content-Type: application/json
+
+{
+  "url": "{{mysqlUrl}}"
+}
+
+#### Step 2: 获取 MySQL 元数据
+GET {{apiPrefix}}/dbs/workflow_mysql
+
+#### Step 3: 执行 MySQL 查询
+POST {{apiPrefix}}/dbs/workflow_mysql/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT DATABASE() as current_database"
+}
+
+#### Step 4: 自然语言生成 MySQL SQL
+POST {{apiPrefix}}/dbs/workflow_mysql/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "查询 todos 表的所有记录"
+}
+
+#### Step 5: 清理 - 删除测试数据库
+DELETE {{apiPrefix}}/dbs/workflow_pg
+
+DELETE {{apiPrefix}}/dbs/workflow_mysql
+
+##########################################
+# 响应格式验证测试
+##########################################
+
+### 31. 验证 DatabaseResponse 使用 camelCase
+PUT {{apiPrefix}}/dbs/camel_test
+Content-Type: application/json
+
+{
+  "url": "{{postgresUrl}}"
+}
+
+### 32. 验证 DatabaseListResponse 使用 camelCase
+GET {{apiPrefix}}/dbs
+
+### 33. 验证 DatabaseMetadataResponse 使用 camelCase
+GET {{apiPrefix}}/dbs/camel_db
+
+### 34. 验证 QueryResult 使用 camelCase
+POST {{apiPrefix}}/dbs/camel_db/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT 1 as id, 'test' as name"
+}
+
+### 35. 验证 ErrorResponse 使用 camelCase
+POST {{apiPrefix}}/dbs/camel_db/query
+Content-Type: application/json
+
+{
+  "sql": "INVALID SQL"
+}
+
+### 36. 清理测试数据库
+DELETE {{apiPrefix}}/dbs/camel_test
+
+DELETE {{apiPrefix}}/dbs/camel_db
