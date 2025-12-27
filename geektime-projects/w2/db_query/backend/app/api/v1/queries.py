@@ -1,6 +1,6 @@
 """API endpoints for query execution."""
 
-from fastapi import APIRouter, HTTPException, Path, Query as FastQueryQuery, status
+from fastapi import APIRouter, HTTPException, Path, status
 from fastapi.responses import Response
 
 from app.models.query import (
@@ -83,9 +83,7 @@ async def export_query(
         return Response(
             content=csv_data,
             media_type="text/csv",
-            headers={
-                "Content-Disposition": f"attachment; filename=query_result_{name}.csv"
-            },
+            headers={"Content-Disposition": f"attachment; filename=query_result_{name}.csv"},
         )
     except ValueError as e:
         raise HTTPException(

@@ -1,18 +1,15 @@
 """Database Query Tool - FastAPI Application."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Dict
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.config import settings
-
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None,  # pragma: no cover
-                                                   None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # pragma: no cover
     """Application lifespan manager.
 
     Yields:
@@ -20,6 +17,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None,  # pragma: no cover
     """
     # Startup
     from app.core.db import db_manager
+
     await db_manager.initialize_database()
     yield
     # Shutdown
@@ -68,7 +66,7 @@ async def global_exception_handler(request, exc: Exception) -> JSONResponse:
 
 # Health check endpoint
 @app.get("/health")
-async def health_check() -> Dict[str, str]:
+async def health_check() -> dict[str, str]:
     """Health check endpoint.
 
     Returns:

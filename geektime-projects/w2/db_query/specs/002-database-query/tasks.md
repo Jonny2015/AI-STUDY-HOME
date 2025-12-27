@@ -221,33 +221,33 @@
 
 ### Backend Polish
 
-- [ ] T077 [P] Add comprehensive docstrings to all service modules in backend/app/services/
-- [ ] T078 [P] Add request/response examples to FastAPI route docstrings in backend/app/api/v1/
+- [X] T077 [P] Add comprehensive docstrings to all service modules in backend/app/services/
+- [X] T078 [P] Add request/response examples to FastAPI route docstrings in backend/app/api/v1/
 - [ ] T079 [P] Create HTTP test fixtures in backend/tests/fixtures/test.rest for all endpoints
-- [ ] T080 [P] Run black formatter on all backend code in backend/app/
-- [ ] T081 [P] Run ruff linter and fix issues in backend/app/
-- [ ] T082 [P] Run mypy --strict type check and fix issues in backend/app/
+- [X] T080 [P] Run black formatter on all backend code in backend/app/
+- [X] T081 [P] Run ruff linter and fix issues in backend/app/
+- [X] T082 [P] Run mypy --strict type check and fix issues in backend/app/
 
 ### Frontend Polish
 
 - [ ] T083 [P] Add responsive design breakpoints to all components in frontend/src/components/
 - [ ] T084 [P] Add loading states to all components that fetch data in frontend/src/components/
 - [ ] T085 [P] Add error boundaries to frontend/src/App.tsx
-- [ ] T086 [P] Run TypeScript type check and fix issues in frontend/src/
+- [X] T086 [P] Run TypeScript type check and fix issues in frontend/src/
 - [ ] T087 [P] Optimize Tailwind CSS bundle size in frontend/tailwind.config.js
 
 ### Integration & Validation
 
-- [ ] T088 Test all user stories end-to-end following quickstart.md scenarios
-- [ ] T089 Validate OpenAPI spec at http://localhost:8000/docs matches contracts/openapi.yaml
-- [ ] T090 Verify CORS works from frontend to backend
-- [ ] T091 Test with real PostgreSQL database connection
-- [ ] T092 Test with real MySQL database connection
-- [ ] T093 Verify password masking in stored URLs
-- [ ] T094 Test metadata caching behavior
-- [ ] T095 Test query timeout (60 seconds)
-- [ ] T096 Verify auto-LIMIT 1000 injection
-- [ ] T097 Test natural language SQL generation with OpenAI API
+- [X] T088 Test all user stories end-to-end following quickstart.md scenarios
+- [X] T089 Validate OpenAPI spec at http://localhost:8000/docs matches contracts/openapi.yaml
+- [X] T090 Verify CORS works from frontend to backend
+- [X] T091 Test with real PostgreSQL database connection
+- [X] T092 Test with real MySQL database connection
+- [X] T093 Verify password masking in stored URLs
+- [X] T094 Test metadata caching behavior
+- [X] T095 Test query timeout (60 seconds)
+- [X] T096 Verify auto-LIMIT 1000 injection
+- [X] T097 Test natural language SQL generation with OpenAI API
 
 ---
 

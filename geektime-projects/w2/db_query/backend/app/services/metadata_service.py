@@ -1,7 +1,6 @@
 """Metadata service for extracting and caching database metadata."""
 
 from datetime import datetime
-from typing import Optional
 
 import aiosqlite
 
@@ -10,9 +9,10 @@ from app.core.db import db_manager
 from app.models.metadata import (
     ColumnMetadata,
     DatabaseMetadataResponse,
+)
+from app.models.metadata import (
     TableMetadata as APITableMetadata,
 )
-from app.adapters.base import TableMetadata as AdapterTableMetadata
 from app.utils.logging import logger
 
 
@@ -79,7 +79,7 @@ class MetadataService:
             logger.error(f"Failed to extract metadata for {name}: {e}")
             raise Exception(f"提取元数据失败: {str(e)}") from e
 
-    async def get_cached_metadata(self, name: str) -> Optional[DatabaseMetadataResponse]:
+    async def get_cached_metadata(self, name: str) -> DatabaseMetadataResponse | None:
         """Get cached metadata from SQLite.
 
         Args:
@@ -152,7 +152,7 @@ class MetadataService:
                     )
 
                 tables = [
-                    TableMetadata(
+                    APITableMetadata(
                         table_name=v["table_name"],
                         table_type=v["table_type"],
                         schema_name=v["schema_name"],

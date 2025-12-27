@@ -1,6 +1,6 @@
 """Metadata models for database structure information."""
 
-from typing import List, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 from pydantic.alias_generators import to_camel
@@ -47,7 +47,7 @@ class TableMetadata(BaseModel):
     table_name: str = Field(alias="tableName", description="Table name")
     table_type: TableType = Field(alias="tableType", description="Table type")
     schema_name: str = Field(alias="schemaName", description="Schema name")
-    columns: List[ColumnMetadata] = Field(alias="columns", description="Column list")
+    columns: list[ColumnMetadata] = Field(alias="columns", description="Column list")
 
 
 class DatabaseMetadataResponse(BaseModel):
@@ -68,6 +68,6 @@ class DatabaseMetadataResponse(BaseModel):
 
     database_name: str = Field(alias="databaseName", description="Database name")
     db_type: str = Field(alias="dbType", description="Database type")
-    tables: List[TableMetadata] = Field(alias="tables", description="Table list")
+    tables: list[TableMetadata] = Field(alias="tables", description="Table list")
     metadata_extracted_at: str = Field(alias="metadataExtractedAt", description="Extraction timestamp")
     is_cached: bool = Field(alias="isCached", description="Whether from cache")

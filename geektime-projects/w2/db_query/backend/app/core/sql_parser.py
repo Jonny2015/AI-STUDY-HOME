@@ -1,9 +1,8 @@
 """SQL parsing and validation using sqlglot."""
 
 import sqlglot
-from sqlglot import exp
 from pydantic import BaseModel
-from typing import Optional
+from sqlglot import exp
 
 
 class ValidationResult(BaseModel):
@@ -17,7 +16,7 @@ class ValidationResult(BaseModel):
 
     is_valid: bool
     sql: str
-    error: Optional[str] = None
+    error: str | None = None
 
 
 def validate_and_transform_sql(sql: str, dialect: str = "postgres") -> ValidationResult:

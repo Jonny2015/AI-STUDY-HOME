@@ -1,8 +1,8 @@
 """API endpoints for database management."""
 
 from fastapi import APIRouter, HTTPException, Path, Query, status
-from pydantic import BaseModel
 
+from app.core.db import db_manager
 from app.models.database import (
     AddDatabaseRequest,
     DatabaseListResponse,
@@ -11,7 +11,6 @@ from app.models.database import (
 from app.models.metadata import DatabaseMetadataResponse
 from app.services.database_service import DatabaseService
 from app.services.metadata_service import MetadataService
-from app.core.db import db_manager
 from app.utils.logging import logger
 
 router = APIRouter(prefix="/dbs", tags=["databases"])
@@ -65,6 +64,7 @@ async def add_database_post(request: AddDatabaseRequest) -> DatabaseResponse:
 
         # Use provided name or generate a timestamp-based name
         import time
+
         name = request.name or f"db_{int(time.time())}"
 
         return await database_service.add_database(name, request.url)

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import type { TableMetadata, ColumnMetadata } from "../types";
+import type { TableMetadata } from "../types";
 
 interface SqlEditorWithAutocompleteProps {
   value: string;
@@ -37,7 +37,6 @@ export const SqlEditorWithAutocomplete: React.FC<SqlEditorWithAutocompleteProps>
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [cursorPosition, setCursorPosition] = useState({ line: 0, column: 0 });
 
   // 获取光标位置
   const getCursorCoordinates = useCallback(() => {

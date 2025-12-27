@@ -1,8 +1,8 @@
 """SQLite database management for storing metadata and connections."""
 
-import aiosqlite
 from pathlib import Path
-from typing import Optional
+
+import aiosqlite
 
 from app.config import settings
 
@@ -14,7 +14,7 @@ class DatabaseManager:
         db_path: Path to the SQLite database file
     """
 
-    def __init__(self, db_path: Optional[Path] = None) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
         """Initialize the database manager.
 
         Args:
@@ -28,7 +28,8 @@ class DatabaseManager:
 
         async with aiosqlite.connect(self.db_path) as db:
             # Create databases table
-            await db.execute("""
+            await db.execute(
+                """
                 CREATE TABLE IF NOT EXISTS databases (
                     name TEXT PRIMARY KEY,
                     url TEXT NOT NULL,
@@ -36,10 +37,12 @@ class DatabaseManager:
                     created_at TEXT NOT NULL,
                     last_connected_at TEXT
                 )
-            """)
+            """
+            )
 
             # Create metadata table
-            await db.execute("""
+            await db.execute(
+                """
                 CREATE TABLE IF NOT EXISTS metadata (
                     db_name TEXT NOT NULL,
                     schema_name TEXT NOT NULL,
@@ -53,21 +56,28 @@ class DatabaseManager:
                     PRIMARY KEY (db_name, schema_name, table_name, column_name),
                     FOREIGN KEY (db_name) REFERENCES databases(name) ON DELETE CASCADE
                 )
-            """)
+            """
+            )
 
             # Create indexes
-            await db.execute("""
+            await db.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_metadata_db_name
                 ON metadata(db_name)
-            """)
-            await db.execute("""
+            """
+            )
+            await db.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_metadata_table_name
                 ON metadata(table_name)
-            """)
-            await db.execute("""
+            """
+            )
+            await db.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_metadata_schema_table
                 ON metadata(schema_name, table_name)
-            """)
+            """
+            )
 
             await db.commit()
 

@@ -1,7 +1,7 @@
 """Abstract base class for database adapters."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -54,7 +54,7 @@ class TableMetadata(BaseModel):
     schema_name: str
     table_name: str
     table_type: str  # "table" or "view"
-    columns: List[ColumnMetadata]
+    columns: list[ColumnMetadata]
 
 
 class DatabaseMetadata(BaseModel):
@@ -69,7 +69,7 @@ class DatabaseMetadata(BaseModel):
 
     db_name: str
     db_type: str
-    tables: List[TableMetadata]
+    tables: list[TableMetadata]
     metadata_extracted_at: str
 
 
@@ -83,8 +83,8 @@ class QueryResult(BaseModel):
         execution_time_ms: Execution time in milliseconds
     """
 
-    columns: List[str]
-    rows: List[Dict[str, Any]]
+    columns: list[str]
+    rows: list[dict[str, Any]]
     row_count: int
     execution_time_ms: int
 

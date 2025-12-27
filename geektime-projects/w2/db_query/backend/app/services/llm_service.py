@@ -1,7 +1,5 @@
 """LLM service for generating SQL from natural language."""
 
-from typing import Optional
-
 import aiosqlite
 import sqlglot
 from openai import AsyncOpenAI
@@ -40,9 +38,11 @@ class LLMService:
         self.client = AsyncOpenAI(**client_kwargs) if self.api_key else None
 
         if self.api_key:
-            logger.info(f"LLM service initialized: provider={settings.llm_provider}, model={self.model}, base_url={self.base_url or 'default'}")
+            logger.info(
+                f"LLM service initialized: provider={settings.llm_provider}, model={self.model}, base_url={self.base_url or 'default'}"
+            )
 
-    async def _get_database_metadata(self, database_name: str) -> Optional[DatabaseMetadataResponse]:
+    async def _get_database_metadata(self, database_name: str) -> DatabaseMetadataResponse | None:
         """Get database metadata for context.
 
         Args:
@@ -83,6 +83,7 @@ class LLMService:
                 # Build simplified metadata for LLM context
                 tables_info = []
                 current_table = None
+                table_info = ""
 
                 for schema_name, table_name, table_type, column_name, data_type in rows:
                     table_key = f"{schema_name}.{table_name}"
@@ -97,8 +98,6 @@ class LLMService:
 
                 if current_table:
                     tables_info.append(f"  - {table_info}")
-
-                metadata_text = "\n".join(tables_info)
                 return DatabaseMetadataResponse(
                     database_name=database_name,
                     db_type=db_type,
@@ -221,9 +220,11 @@ Type: {metadata.db_type}"""
             if not response:
                 raise ValueError("LLM API 返回空响应")
 
-            if not hasattr(response, 'choices') or not response.choices:
+            if not hasattr(response, "choices") or not response.choices:
                 logger.error(f"Invalid response structure. Response: {response}")
-                raise ValueError(f"LLM API 返回的响应格式不正确,缺少 choices 字段。请检查 BASE_URL 和 MODEL 配置是否正确。\n当前配置: base_url={self.base_url}, model={self.model}")
+                raise ValueError(
+                    f"LLM API 返回的响应格式不正确,缺少 choices 字段。请检查 BASE_URL 和 MODEL 配置是否正确。\n当前配置: base_url={self.base_url}, model={self.model}"
+                )
 
             sql = response.choices[0].message.content or ""
 
@@ -246,7 +247,7 @@ Type: {metadata.db_type}"""
 
             return GeneratedSQLResponse(
                 sql=sql,
-                explanation=f"根据您的请求生成 SQL 查询",
+                explanation="根据您的请求生成 SQL 查询",
                 warnings=[],
             )
 

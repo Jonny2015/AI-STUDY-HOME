@@ -3,9 +3,9 @@
 import asyncio
 import time
 from datetime import datetime
-from typing import Any, List
 
 import aiomysql
+
 from app.adapters.base import (
     ColumnMetadata,
     Connection,
@@ -73,10 +73,11 @@ class MySQLAdapter(DatabaseAdapter):
         cursor = await conn.cursor()
 
         try:
-            tables: List[TableMetadata] = []
+            tables: list[TableMetadata] = []
 
             # Get all tables and views
-            await cursor.execute("""
+            await cursor.execute(
+                """
                 SELECT
                     TABLE_SCHEMA as table_schema,
                     TABLE_NAME as table_name,
@@ -84,7 +85,8 @@ class MySQLAdapter(DatabaseAdapter):
                 FROM information_schema.TABLES
                 WHERE TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema')
                 ORDER BY TABLE_SCHEMA, TABLE_NAME
-            """)
+            """
+            )
 
             rows = await cursor.fetchall()
 
@@ -102,7 +104,8 @@ class MySQLAdapter(DatabaseAdapter):
                     continue
 
                 # Get column information
-                await cursor.execute("""
+                await cursor.execute(
+                    """
                     SELECT
                         COLUMN_NAME as column_name,
                         DATA_TYPE as data_type,
@@ -112,7 +115,9 @@ class MySQLAdapter(DatabaseAdapter):
                     WHERE TABLE_SCHEMA = %s
                         AND TABLE_NAME = %s
                     ORDER BY ORDINAL_POSITION
-                """, (schema_name, table_name))
+                """,
+                    (schema_name, table_name),
+                )
 
                 columns_result = await cursor.fetchall()
 
@@ -199,7 +204,7 @@ class MySQLAdapter(DatabaseAdapter):
                 execution_time_ms=execution_time,
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise Exception(f"查询超时（超过 {timeout} 秒）") from None
         except Exception as e:
             raise Exception(f"查询执行失败: {str(e)}") from e

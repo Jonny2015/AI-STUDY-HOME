@@ -2,8 +2,6 @@
 
 import csv
 import io
-import time
-from typing import Tuple
 
 import aiosqlite
 import sqlglot
@@ -30,7 +28,7 @@ class QueryService:
     # Query timeout in seconds
     QUERY_TIMEOUT = 60
 
-    async def validate_sql(self, sql: str) -> Tuple[bool, str]:
+    async def validate_sql(self, sql: str) -> tuple[bool, str]:
         """Validate SQL query for safety.
 
         Checks:
@@ -73,10 +71,7 @@ class QueryService:
             parsed = sqlglot.parse_one(sql)
 
             # Check if LIMIT already exists
-            has_limit = any(
-                isinstance(expr, sqlglot.exp.Limit)
-                for expr in parsed.find_all(sqlglot.exp.Limit)
-            )
+            has_limit = any(isinstance(expr, sqlglot.exp.Limit) for expr in parsed.find_all(sqlglot.exp.Limit))
 
             if not has_limit:
                 # Inject LIMIT

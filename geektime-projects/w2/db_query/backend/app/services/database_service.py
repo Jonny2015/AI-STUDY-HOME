@@ -1,14 +1,13 @@
 """Database service for managing database connections."""
 
-import aiosqlite
 from datetime import datetime
-from pathlib import Path
+
+import aiosqlite
 
 from app.adapters.registry import AdapterRegistry
-from app.config import settings
 from app.core.db import db_manager
 from app.core.security import is_valid_database_name, mask_url_password, validate_database_url
-from app.models.database import DatabaseResponse, DatabaseListResponse, AddDatabaseRequest
+from app.models.database import DatabaseListResponse, DatabaseResponse
 from app.utils.logging import logger
 
 

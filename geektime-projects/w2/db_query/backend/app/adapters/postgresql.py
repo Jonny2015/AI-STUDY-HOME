@@ -3,9 +3,9 @@
 import asyncio
 import time
 from datetime import datetime
-from typing import Any, List
 
 import asyncpg
+
 from app.adapters.base import (
     ColumnMetadata,
     Connection,
@@ -63,7 +63,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
         conn: asyncpg.Connection = connection.connection
 
         try:
-            tables: List[TableMetadata] = []
+            tables: list[TableMetadata] = []
 
             # Get all tables and views
             query = """
@@ -196,7 +196,7 @@ class PostgreSQLAdapter(DatabaseAdapter):
                 execution_time_ms=execution_time,
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise Exception(f"查询超时（超过 {timeout} 秒）") from None
         except Exception as e:
             raise Exception(f"查询执行失败: {str(e)}") from e

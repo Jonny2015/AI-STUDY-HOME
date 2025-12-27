@@ -1,7 +1,5 @@
 """Adapter registry for managing database adapters."""
 
-from typing import Dict, List, Type
-
 from app.adapters.base import DatabaseAdapter
 
 
@@ -12,10 +10,10 @@ class AdapterRegistry:
     Enables adding new database types without modifying existing code (Open/Closed Principle).
     """
 
-    _adapters: Dict[str, Type[DatabaseAdapter]] = {}
+    _adapters: dict[str, type[DatabaseAdapter]] = {}
 
     @classmethod
-    def register(cls, db_type: str, adapter_class: Type[DatabaseAdapter]) -> None:
+    def register(cls, db_type: str, adapter_class: type[DatabaseAdapter]) -> None:
         """Register a database adapter.
 
         Args:
@@ -40,15 +38,12 @@ class AdapterRegistry:
         adapter_class = cls._adapters.get(db_type)
         if not adapter_class:
             supported = ", ".join(cls._adapters.keys())
-            raise ValueError(
-                f"Unsupported database type: {db_type}. "
-                f"Supported types: {supported}"
-            )
+            raise ValueError(f"Unsupported database type: {db_type}. " f"Supported types: {supported}")
 
         return adapter_class(db_type=db_type)
 
     @classmethod
-    def supported_types(cls) -> List[str]:
+    def supported_types(cls) -> list[str]:
         """Get list of supported database types.
 
         Returns:
@@ -58,8 +53,8 @@ class AdapterRegistry:
 
 
 # Register built-in adapters
-from app.adapters.postgresql import PostgreSQLAdapter
 from app.adapters.mysql import MySQLAdapter
+from app.adapters.postgresql import PostgreSQLAdapter
 
 AdapterRegistry.register("postgresql", PostgreSQLAdapter)
 AdapterRegistry.register("mysql", MySQLAdapter)

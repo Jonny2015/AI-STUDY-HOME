@@ -1,7 +1,7 @@
 """Database connection models."""
 
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic.alias_generators import to_camel
@@ -33,7 +33,7 @@ class DatabaseResponse(BaseModel):
         alias="connectionStatus",
         description="Connection status",
     )
-    last_connected_at: Optional[datetime] = Field(
+    last_connected_at: datetime | None = Field(
         default=None,
         alias="lastConnectedAt",
         description="Last successful connection timestamp",
@@ -53,7 +53,7 @@ class DatabaseListResponse(BaseModel):
         "populate_by_name": True,
     }
 
-    data: List[DatabaseResponse] = Field(alias="data", description="Database list")
+    data: list[DatabaseResponse] = Field(alias="data", description="Database list")
     total: int = Field(alias="total", description="Total count")
 
 
@@ -65,7 +65,7 @@ class AddDatabaseRequest(BaseModel):
         url: Database connection URL
     """
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         default=None,
         description="Database connection name",
     )
