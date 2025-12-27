@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useOne } from "@refinedev/core";
-import type { DatabaseMetadataResponse } from "../types";
+import type { DatabaseMetadataResponse, TableMetadata, ColumnMetadata } from "../types";
 
 interface MetadataViewerProps {
   databaseName: string;
@@ -11,7 +11,7 @@ export const MetadataViewer: React.FC<MetadataViewerProps> = ({ databaseName }) 
   const [error, setError] = useState("");
 
   // Fetch metadata
-  const { data, isLoading, refetch } = useOne<DatabaseMetadataResponse>({
+  const { query, result } = useOne<DatabaseMetadataResponse>({
     resource: "dbs",
     id: databaseName,
     queryOptions: {
@@ -19,14 +19,14 @@ export const MetadataViewer: React.FC<MetadataViewerProps> = ({ databaseName }) 
     },
   });
 
-  const metadata = data?.data;
+  const metadata = result;
 
   const handleRefresh = async () => {
     setRefreshing(true);
     setError("");
     try {
       // Force refresh by adding refresh parameter
-      await refetch();
+      await query.refetch();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "刷新元数据失败";
       setError(message);
@@ -35,7 +35,7 @@ export const MetadataViewer: React.FC<MetadataViewerProps> = ({ databaseName }) 
     }
   };
 
-  if (isLoading) {
+  if (query.isLoading) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <div className="text-center py-8">加载元数据中...</div>
@@ -104,7 +104,7 @@ export const MetadataViewer: React.FC<MetadataViewerProps> = ({ databaseName }) 
       )}
 
       <div className="space-y-4">
-        {metadata.tables.map((table) => (
+        {metadata.tables.map((table: TableMetadata) => (
           <details
             key={`${table.schemaName}.${table.tableName}`}
             className="border border-gray-200 rounded-lg"
@@ -151,7 +151,7 @@ export const MetadataViewer: React.FC<MetadataViewerProps> = ({ databaseName }) 
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {table.columns.map((column, idx) => (
+                  {table.columns.map((column: ColumnMetadata, idx: number) => (
                     <tr key={idx}>
                       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                         {column.columnName}

@@ -4,6 +4,7 @@ import { Refine } from "@refinedev/core";
 import { BrowserRouter } from "react-router-dom";
 import dataProvider from "@refinedev/simple-rest";
 import App from "./App";
+import "./index.css";
 
 // Create data provider using our API client
 const apiUrl = "/api/v1";

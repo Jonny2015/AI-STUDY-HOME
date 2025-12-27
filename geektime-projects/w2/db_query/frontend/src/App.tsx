@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useInvalidate } from "@refinedev/core";
 import { Dashboard } from "./pages/Dashboard";
 import { QueryPage } from "./pages/QueryPage";
@@ -8,9 +8,10 @@ import { AddDatabaseModal } from "./components/AddDatabaseModal";
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const invalidate = useInvalidate();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const handleSuccess = () => {
-    // Invalidate the dbs resource to trigger a refetch
     invalidate({
       resource: "dbs",
       invalidates: ["list"],
@@ -18,35 +19,61 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Database Query Tool
-          </h1>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <svg
-              className="-ml-1 mr-2 h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            添加数据库
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* 顶部导航栏 */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo和品牌 */}
+            <div className="flex items-center gap-8">
+              <button
+                onClick={() => navigate("/")}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              >
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-200">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-slate-800">DB Query</h1>
+                  <p className="text-xs text-slate-500">智能数据库查询</p>
+                </div>
+              </button>
+
+              {/* 导航链接 */}
+              <nav className="hidden md:flex items-center gap-1">
+                <button
+                  onClick={() => navigate("/")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    location.pathname === "/"
+                      ? "bg-violet-50 text-violet-700"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+                >
+                  首页
+                </button>
+              </nav>
+            </div>
+
+            {/* 右侧操作区 */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-200 hover:shadow-xl hover:shadow-violet-300 transition-all hover:-translate-y-0.5"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                添加数据库
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      {/* 主内容区 */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/query/:databaseName" element={<QueryPage />} />

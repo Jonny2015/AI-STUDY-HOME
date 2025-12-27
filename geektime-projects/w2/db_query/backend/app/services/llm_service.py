@@ -171,11 +171,20 @@ Type: {metadata.db_type}"""
             GeneratedSQLResponse with SQL and explanation
 
         Raises:
-            ValueError: If OpenAI API key not set or generation fails
+            ValueError: If generation fails
             Exception: If validation fails
         """
+        # Check if OpenAI API key is configured
         if not self.client:
-            raise ValueError("OpenAI API key not configured")
+            # Return a helpful placeholder SQL when API key is not configured
+            logger.warning(f"OpenAI API key not configured, returning placeholder SQL for {database_name}")
+            placeholder_sql = f"-- OpenAI API 密钥未配置\n-- 请在环境变量中设置 OPENAI_API_KEY\n-- 或者根据您的需求修改下方的 SQL 查询\n\n-- 根据您的描述: {prompt}\nSELECT * FROM your_table_name LIMIT 1000;"
+
+            return GeneratedSQLResponse(
+                sql=placeholder_sql,
+                explanation="OpenAI API 密钥未配置，请配置后使用 AI 功能。您可以手动修改上方的 SQL 查询。",
+                warnings=["OpenAI API key not configured"],
+            )
 
         try:
             # Build system message
