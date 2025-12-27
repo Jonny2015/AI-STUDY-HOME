@@ -30,8 +30,9 @@ test.describe('Database Query Tool - 基础功能', () => {
   });
 
   test('应该显示数据库列表', async ({ page }) => {
-    // 检查是否有数据库列表容器
-    const dbList = page.locator('[data-testid="database-list"], .ant-list, table');
+    // 检查是否有数据库列表容器 - 使用更通用的选择器
+    // DatabaseList 组件渲染 <ul> 列表，包含数据库名称
+    const dbList = page.locator('ul:has(li:has-text("已连接")), ul:has(li:has-text("未连接")), .divide-y');
     await expect(dbList.first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -138,6 +139,7 @@ test.describe('Database Query Tool - 用户交互测试', () => {
       `http://localhost:8000/api/v1/dbs/${testDbName}`
     );
 
-    expect(deleteResponse.status()).toBe(200);
+    // DELETE 操作成功返回 204 (No Content)
+    expect(deleteResponse.status()).toBe(204);
   });
 });
