@@ -7,7 +7,12 @@ import aiosqlite
 
 from app.adapters.registry import AdapterRegistry
 from app.core.db import db_manager
-from app.models.metadata import ColumnMetadata, DatabaseMetadataResponse, TableMetadata
+from app.models.metadata import (
+    ColumnMetadata,
+    DatabaseMetadataResponse,
+    TableMetadata as APITableMetadata,
+)
+from app.adapters.base import TableMetadata as AdapterTableMetadata
 from app.utils.logging import logger
 
 
@@ -35,8 +40,29 @@ class MetadataService:
             # Get metadata from database
             adapter = AdapterRegistry.get_adapter(db_type)
             connection = await adapter.connect(url)
-            db_metadata = await adapter.get_metadata(connection.connection)
+
+            # Pass the Connection wrapper to get_metadata (not connection.connection)
+            db_metadata = await adapter.get_metadata(connection)
             await connection.connection.close()
+
+            # Convert adapter metadata to API metadata
+            api_tables = [
+                APITableMetadata(
+                    table_name=table.table_name,
+                    table_type=table.table_type,
+                    schema_name=table.schema_name,
+                    columns=[
+                        ColumnMetadata(
+                            column_name=col.column_name,
+                            data_type=col.data_type,
+                            is_nullable=col.is_nullable,
+                            is_primary_key=col.is_primary_key,
+                        )
+                        for col in table.columns
+                    ],
+                )
+                for table in db_metadata.tables
+            ]
 
             # Cache in SQLite
             await self._cache_metadata(name, db_metadata)
@@ -44,7 +70,7 @@ class MetadataService:
             return DatabaseMetadataResponse(
                 database_name=name,
                 db_type=db_type,
-                tables=db_metadata.tables,
+                tables=api_tables,
                 metadata_extracted_at=datetime.utcnow().isoformat(),
                 is_cached=False,
             )
@@ -196,20 +222,22 @@ class MetadataService:
         """
         try:
             async with aiosqlite.connect(db_manager.db_path) as conn:
-                # Delete old metadata
+                # Delete old metadata first
                 await conn.execute(
                     "DELETE FROM metadata WHERE db_name = ?",
                     (name,),
                 )
+                await conn.commit()  # Commit delete before insert
 
                 # Insert new metadata
                 extracted_at = datetime.utcnow().isoformat()
 
                 for table in metadata.tables:
                     for column in table.columns:
+                        # Use INSERT OR REPLACE to handle any conflicts
                         await conn.execute(
                             """
-                            INSERT INTO metadata (
+                            INSERT OR REPLACE INTO metadata (
                                 db_name, schema_name, table_name, table_type,
                                 column_name, data_type, is_nullable, is_primary_key,
                                 metadata_extracted_at

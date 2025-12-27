@@ -49,7 +49,7 @@ export const NaturalLanguageInput: React.FC<NaturalLanguageInputProps> = ({
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="例如: 查询所有状态为活跃的用户"
           disabled={disabled || generating}
-          className="w-full h-24 px-4 py-3 rounded-xl border border-slate-300 focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:bg-white transition-all disabled:bg-slate-100 disabled:cursor-not-allowed bg-slate-50 resize-none text-sm"
+          className="w-full h-24 px-4 py-3 rounded-xl border border-slate-300 focus:border-violet-500 focus:ring-2 focus:ring-violet-200 focus:bg-white transition-all disabled:bg-slate-100 disabled:cursor-not-allowed bg-slate-50 resize-none text-sm placeholder:text-slate-400"
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
               e.preventDefault();

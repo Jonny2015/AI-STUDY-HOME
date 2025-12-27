@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import type { QueryResult as QueryResultType } from "../types";
+import { useOne } from "@refinedev/core";
+import type { QueryResult as QueryResultType, DatabaseMetadataResponse } from "../types";
 import { NaturalLanguageInput } from "../components/NaturalLanguageInput";
-import { SqlEditor } from "../components/SqlEditor";
+import { SqlEditorWithAutocomplete } from "../components/SqlEditorWithAutocomplete";
 import { QueryResult } from "../components/QueryResult";
+import { MetadataViewer } from "../components/MetadataViewer";
 
 export const QueryPage = () => {
   const { databaseName } = useParams<{ databaseName: string }>();
@@ -14,6 +16,17 @@ export const QueryPage = () => {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<QueryResultType | null>(null);
+  const [metadataWidth, setMetadataWidth] = useState(25); // 默认25%
+  const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(false);
+
+  // 获取数据库元数据用于自动完成
+  const { result: metadata } = useOne<DatabaseMetadataResponse>({
+    resource: "dbs",
+    id: databaseName || "",
+    queryOptions: {
+      enabled: !!databaseName,
+    },
+  });
 
   const handleGenerateSQL = async (prompt: string) => {
     if (!databaseName) {
@@ -100,6 +113,32 @@ export const QueryPage = () => {
     }
   };
 
+  const handleToggleMetadata = () => {
+    setIsMetadataCollapsed(!isMetadataCollapsed);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = metadataWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const containerWidth = window.innerWidth;
+      const deltaX = e.clientX - startX;
+      const deltaPercent = (deltaX / containerWidth) * 100;
+      const newWidth = Math.max(15, Math.min(50, startWidth + deltaPercent)); // 限制在15%-50%
+      setMetadataWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   if (!databaseName) {
     return (
       <div className="p-8">
@@ -142,46 +181,108 @@ export const QueryPage = () => {
         disabled={executing || generating}
       />
 
-      {/* SQL Editor Card */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div className="p-6">
-          {/* SQL Editor */}
-          <SqlEditor
-            value={sql}
-            onChange={setSql}
-            onExecute={handleExecute}
-            disabled={executing || generating}
-            placeholder="输入 SELECT 查询或使用上方 AI 生成..."
+      {/* Main Content: SQL Editor + Metadata Viewer with resizable divider */}
+      <div className="flex gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white relative">
+        {/* SQL Editor - 可调整宽度 */}
+        <div
+          className="flex flex-col"
+          style={{ width: isMetadataCollapsed ? '100%' : `${100 - metadataWidth}%` }}
+        >
+          <div className="p-6 flex-1">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">SQL 编辑器</h2>
+
+            {/* SQL Editor with Autocomplete */}
+            <SqlEditorWithAutocomplete
+              value={sql}
+              onChange={setSql}
+              onExecute={handleExecute}
+              tables={metadata?.tables}
+              disabled={executing || generating}
+              placeholder="输入 SELECT 查询或使用上方 AI 生成..."
+            />
+
+            {/* Execute Button */}
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-slate-500 flex items-center">
+                <svg className="w-4 h-4 mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                只允许 SELECT 查询，系统会自动添加 LIMIT 子句
+              </div>
+              <button
+                onClick={handleExecute}
+                disabled={executing || generating || !sql.trim()}
+                className="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                {executing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    执行中...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    执行查询
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 分隔线和按钮容器 - 始终显示 */}
+        <div className="relative flex-shrink-0">
+          {/* 可拖动分隔线 */}
+          <div
+            className={`w-1 transition-colors duration-200 ${
+              isMetadataCollapsed
+                ? 'bg-slate-300'
+                : 'bg-slate-200 hover:bg-blue-400 cursor-col-resize'
+            }`}
+            onMouseDown={handleMouseDown}
           />
 
-          {/* Execute Button */}
-          <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm text-slate-500 flex items-center">
-              <svg className="w-4 h-4 mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          {/* 收缩/展开按钮 - 在分隔线中央 */}
+          <button
+            onClick={handleToggleMetadata}
+            className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-lg flex items-center justify-center shadow-md border-2 transition-all duration-200 ${
+              isMetadataCollapsed
+                ? 'bg-blue-500 border-blue-600 hover:bg-blue-600 hover:scale-110'
+                : 'bg-white border-slate-300 hover:bg-slate-50 hover:scale-110'
+            }`}
+            title={isMetadataCollapsed ? "展开数据库结构" : "收缩数据库结构"}
+          >
+            {isMetadataCollapsed ? (
+              // 展开图标 - 双箭头向左
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 19l-7-7 7-7m8 0l-7-7 7-7" />
               </svg>
-              只允许 SELECT 查询，系统会自动添加 LIMIT 子句
-            </div>
-            <button
-              onClick={handleExecute}
-              disabled={executing || generating || !sql.trim()}
-              className="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-            >
-              {executing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  执行中...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  执行查询
-                </>
-              )}
-            </button>
+            ) : (
+              // 收缩图标 - 单箭头向左
+              <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            )}
+          </button>
+
+          {/* 悬停提示条 - 拖动时显示 */}
+          {!isMetadataCollapsed && (
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-blue-400 opacity-0 hover:opacity-100 transition-opacity" />
+          )}
+        </div>
+
+        {/* Metadata Viewer - 可调整宽度,支持收缩 */}
+        <div
+          className={`relative flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out border-l border-slate-200 ${
+            isMetadataCollapsed ? 'w-0' : ''
+          }`}
+          style={isMetadataCollapsed ? {} : { width: `${metadataWidth}%` }}
+        >
+          <div className="h-full overflow-auto">
+            <MetadataViewer databaseName={databaseName || ""} />
           </div>
         </div>
       </div>
