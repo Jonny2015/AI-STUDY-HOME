@@ -45,7 +45,7 @@ class QueryService:
         """
         try:
             # Parse SQL to validate syntax
-            parsed = sqlglot.parse_one(sql, error_level=sqlglot.Error.ErrorLevel.IMMEDIATE)
+            parsed = sqlglot.parse_one(sql)
 
             # Check if it's a SELECT statement
             if not isinstance(parsed, sqlglot.exp.Select):
@@ -131,28 +131,11 @@ class QueryService:
             connection = await adapter.connect(url)
 
             # Execute query with timeout
-            start_time = time.time()
-            result = await connection.execute_query(sql, timeout=self.QUERY_TIMEOUT)
-            execution_time = int((time.time() - start_time) * 1000)  # Convert to ms
+            result = await adapter.execute_query(connection, sql, timeout=self.QUERY_TIMEOUT)
 
             await connection.connection.close()
 
-            # Build result
-            columns = [desc[0] for desc in result.description] if result.description else []
-            rows = []
-
-            async for row in result:
-                row_dict = {}
-                for i, col in enumerate(columns):
-                    row_dict[col] = row[i]
-                rows.append(row_dict)
-
-            return QueryResult(
-                columns=columns,
-                rows=rows,
-                row_count=len(rows),
-                execution_time_ms=execution_time,
-            )
+            return result
 
         except ValueError:
             raise
