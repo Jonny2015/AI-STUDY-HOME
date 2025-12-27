@@ -182,13 +182,13 @@ export const QueryPage = () => {
       />
 
       {/* Main Content: SQL Editor + Metadata Viewer with resizable divider */}
-      <div className="flex gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white relative">
+      <div className="flex gap-0 overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white relative" style={{ height: '450px' }}>
         {/* SQL Editor - 可调整宽度 */}
         <div
-          className="flex flex-col"
+          className="flex flex-col overflow-hidden"
           style={{ width: isMetadataCollapsed ? '100%' : `${100 - metadataWidth}%` }}
         >
-          <div className="p-6 flex-1">
+          <div className="p-6 overflow-y-auto">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">SQL 编辑器</h2>
 
             {/* SQL Editor with Autocomplete */}
@@ -276,14 +276,12 @@ export const QueryPage = () => {
 
         {/* Metadata Viewer - 可调整宽度,支持收缩 */}
         <div
-          className={`relative flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out border-l border-slate-200 ${
+          className={`relative flex flex-col overflow-hidden transition-all duration-300 ease-in-out border-l border-slate-200 ${
             isMetadataCollapsed ? 'w-0' : ''
           }`}
           style={isMetadataCollapsed ? {} : { width: `${metadataWidth}%` }}
         >
-          <div className="h-full overflow-auto">
-            <MetadataViewer databaseName={databaseName || ""} />
-          </div>
+          <MetadataViewer databaseName={databaseName || ""} />
         </div>
       </div>
 
