@@ -27,8 +27,9 @@ help:
 	@echo "  make db-location        - 显示数据库文件位置"
 
 # 初始化项目
-setup: install-backend install-frontend
+setup: install-backend install-frontend db-init
 	@echo "项目初始化完成！"
+	@echo "运行 'make dev' 启动开发服务器"
 
 # 安装后端依赖
 install-backend:
@@ -112,7 +113,7 @@ clean:
 # 初始化数据库
 db-init:
 	@echo "初始化数据库..."
-	cd backend && PYTHONPATH=. uv run python scripts/db_utils.py init
+	cd backend && uv run python scripts/init_db.py
 
 # 重置数据库（删除所有数据并重新创建表）
 db-reset:

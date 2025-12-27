@@ -10,11 +10,11 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables.
 
     Attributes:
-        openai_api_key: OpenAI API key for LLM features
+        openai_api_key: OpenAI API key for LLM features (optional, for natural language to SQL)
         database_path: Path to SQLite database for metadata storage
     """
 
-    openai_api_key: str
+    openai_api_key: str | None = None
     database_path: Path = Path.home() / ".db_query" / "db_query.db"
 
     model_config = {
