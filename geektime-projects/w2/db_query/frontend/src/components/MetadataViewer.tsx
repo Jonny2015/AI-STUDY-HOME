@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useOne } from "@refinedev/core";
-import type { DatabaseMetadataResponse, TableMetadata, ColumnMetadata } from "../types";
+import type { DatabaseMetadataResponse, TableMetadata } from "../types";
 
 interface MetadataViewerProps {
   databaseName: string;
@@ -270,7 +270,7 @@ export const MetadataViewer: React.FC<MetadataViewerProps> = ({ databaseName }) 
                           </span>
                         </summary>
 
-                        {/* 字段列表 - 极简单列布局 */}
+                        {/* 字段列表 - 不限制高度,使用外层滚动 */}
                         <div className="bg-slate-50/30">
                           <div className="divide-y divide-slate-100">
                             {table.columns.map((column, idx) => (
