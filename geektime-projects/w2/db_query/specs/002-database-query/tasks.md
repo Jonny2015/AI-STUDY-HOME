@@ -223,7 +223,7 @@
 
 - [X] T077 [P] Add comprehensive docstrings to all service modules in backend/app/services/
 - [X] T078 [P] Add request/response examples to FastAPI route docstrings in backend/app/api/v1/
-- [ ] T079 [P] Create HTTP test fixtures in backend/tests/fixtures/test.rest for all endpoints
+- [X] T079 [P] Create HTTP test fixtures in backend/tests/fixtures/test.rest for all endpoints
 - [X] T080 [P] Run black formatter on all backend code in backend/app/
 - [X] T081 [P] Run ruff linter and fix issues in backend/app/
 - [X] T082 [P] Run mypy --strict type check and fix issues in backend/app/
