@@ -6,7 +6,7 @@ FastAPI backend for the Database Query Tool.
 
 - Python 3.11+
 - uv (Python package manager)
-- OpenAI API key
+- LLM API key (OpenAI, or custom OpenAI-compatible API)
 
 ## Installation
 
@@ -31,8 +31,47 @@ FastAPI backend for the Database Query Tool.
 4. Configure environment:
    ```bash
    cp .env.example .env
-   # Edit .env and add your OPENAI_API_KEY
+   # Edit .env and add your LLM configuration
    ```
+
+### LLM Configuration
+
+The application supports various LLM providers through OpenAI-compatible APIs:
+
+#### Option 1: OpenAI (Default)
+```bash
+LLM_PROVIDER=openai
+LLM_API_KEY=sk-your-openai-api-key
+LLM_MODEL=gpt-4o-mini
+```
+
+#### Option 2: Custom OpenAI-Compatible API
+Use any OpenAI-compatible API (local models, domestic services, etc.):
+
+```bash
+LLM_PROVIDER=custom
+LLM_API_KEY=your-custom-api-key
+LLM_BASE_URL=https://your-api-endpoint.com/v1
+LLM_MODEL=your-model-name
+```
+
+#### Option 3: Moonshot AI (Kimi)
+```bash
+LLM_PROVIDER=custom
+LLM_API_KEY=your-moonshot-api-key
+LLM_BASE_URL=https://api.moonshot.cn/v1
+LLM_MODEL=moonshot-v1-8k
+```
+
+#### Option 4: Alibaba Qwen (通义千问)
+```bash
+LLM_PROVIDER=custom
+LLM_API_KEY=sk-your-qwen-api-key
+LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+LLM_MODEL=qwen-turbo
+```
+
+**Note:** The legacy `OPENAI_API_KEY` is still supported but deprecated. Use `LLM_API_KEY` instead.
 
 ## Development
 
