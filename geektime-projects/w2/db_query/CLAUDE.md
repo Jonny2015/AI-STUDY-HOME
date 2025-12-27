@@ -202,3 +202,8 @@ class ExampleResponse(BaseModel):
 - 连接URL不记录明文密码
 
 <!-- MANUAL ADDITIONS END -->
+
+## Specify Kit 集成配置
+- **AI 助手**: Claude Code
+- **SpecKit 版本**: v0.0.34+
+- **命令前缀**: `/speckit`
