@@ -198,25 +198,25 @@
 
 ### Documentation
 
-- [ ] T078 [P] Create backend README.md with setup instructions at backend/README.md
-- [ ] T079 [P] Create frontend README.md with setup instructions at frontend/README.md
-- [ ] T080 [P] Create root README.md with project overview at README.md
-- [ ] T081 [P] Add API usage examples to backend README
+- [X] T078 [P] Create backend README.md with setup instructions at backend/README.md
+- [X] T079 [P] Create frontend README.md with setup instructions at frontend/README.md
+- [X] T080 [P] Create root README.md with project overview at README.md
+- [X] T081 [P] Add API usage examples to backend README
 
 ### Testing & Quality
 
-- [ ] T082 [P] Add unit tests for SQL validator in backend/tests/unit/test_sql_validator.py
-- [ ] T083 [P] Add integration tests for database API in backend/tests/integration/test_api_databases.py
-- [ ] T084 [P] Add integration tests for query API in backend/tests/integration/test_api_queries.py
-- [ ] T085 [P] Add contract tests for camelCase format in backend/tests/contract/test_api_contracts.py
+- [X] T082 [P] Add unit tests for SQL validator in backend/tests/unit/test_sql_validator.py
+- [X] T083 [P] Add integration tests for database API in backend/tests/integration/test_api_databases.py
+- [X] T084 [P] Add integration tests for query API in backend/tests/integration/test_api_queries.py
+- [X] T085 [P] Add contract tests for camelCase format in backend/tests/contract/test_api_contracts.py
 
 ### Developer Tools
 
-- [ ] T086 [P] Setup ruff configuration for backend linting at backend/ruff.toml
-- [ ] T087 [P] Setup ESLint configuration for frontend at frontend/eslint.config.js
-- [ ] T088 [P] Create start script for both backend and frontend at start.sh
+- [X] T086 [P] Setup ruff configuration for backend linting at backend/ruff.toml
+- [X] T087 [P] Setup ESLint configuration for frontend at frontend/eslint.config.js
+- [X] T088 [P] Create start script for both backend and frontend at start.sh
 
-**Checkpoint**: Project is fully documented, tested, and ready for use
+**Checkpoint**: ✅ Project is fully documented, tested, and ready for use
 
 ---
 
