@@ -30,9 +30,67 @@ POST /api/v1/dbs/{name}/export/all
 }
 ```
 
-## 测试
+# 任务分解
+/speckit.specify
+/speckit.plan
 
-仔细阅读 . 下面的代码，然后运行后端和前端，根据@fixtures/test.rest 用 curl 测试后端已实现的路由；然后用 playwright 开前端进行测试，任何测试问题，think ultra hard and fix
+/speckit.tasks 任务分解粒度小一些, 按过程中的事件或动作维度分解，比如：“获取查询结果”、“格式化数据”、“创建文件”等，制定执行的子任务项。要求每个任务是可执行的且相对独立的，不可循环依赖。 
+
+# 功能实现
+/speckit.implement 开始执行 phase 1-3 
+
+
+📊 总览统计
+
+  总任务数: 122 个任务
+
+  按阶段分解:
+  - Phase 1 (Setup): 4 个任务
+  - Phase 2 (Foundational): 40 个任务
+  - Phase 3 (User Story 1 - 手动导出): 30 个任务 (15 测试 + 15 实现)
+  - Phase 4 (User Story 2 - AI 助手): 22 个任务 (10 测试 + 12 实现)
+  - Phase 5 (User Story 3 - AI SQL 生成): 14 个任务 (7 测试 + 7 实现)
+  - Phase 6 (Polish): 12 个任务
+
+  🔄 并行机会
+
+  各阶段可并行任务数:
+  - Setup: 3 个任务可并行
+  - Foundational: 31 个任务可并行
+  - User Story 1: 14 个任务可并行
+  - User Story 2: 14 个任务可并行
+  - User Story 3: 10 个任务可并行
+  - Polish: 8 个任务可并行
+
+  🎬 MVP 建议
+
+  最小可行产品 (Phase 1-3, User Story 1):
+  - 74 个任务 (4 setup + 40 foundational + 30 US1)
+  - 提供完整的手动导出功能
+  - 支持 CSV/JSON/MD 三种格式
+  - 支持当前页/全部数据导出
+  - 包含进度跟踪、错误处理、并发控制
+
+  📋 任务格式规范
+
+  所有任务严格遵循 checklist 格式:
+  - [ ] [TaskID] [P?] [Story?] Description with file path
+
+  - [P]: 可并行标记
+  - [Story]: 用户故事标签 (US1/US2/US3)
+  - 每个任务包含精确文件路径
+
+  🚀 实施策略
+
+  1. MVP 优先: 先完成 User Story 1 交付基础导出能力
+  2. 增量交付: 每个用户故事独立完成后即可部署
+  3. 团队协作: Foundational 完成后,三个用户故事可并行开发
+  4. TDD 原则: 测试先编写并确保失败,再实现功能
+
+  任务文档已就绪,可以开始实施了! 
+
+## 测试
+仔细阅读 db_query 下面的代码，然后运行后端和前端，根据@fixtures/test.rest 用 curl 测试后端已实现的路由；然后用 playwright 开前端进行测试，任何测试问题，think ultra hard and fix
 
 ## db migration & unit test
 

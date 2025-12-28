@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     # Metadata cache configuration
     metadata_cache_hours: int = 24
 
+    # Export configuration
+    export_max_file_size_mb: int = 100  # 100MB file size limit
+    export_timeout_seconds: int = 300  # 5 minutes timeout
+    export_max_concurrent_per_user: int = 3  # Max concurrent export tasks per user
+    export_temp_dir: str = str(Path.home() / ".db_query" / "exports")
+    export_retention_days: int = 7  # Keep export files for 7 days
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -50,6 +57,13 @@ class Settings(BaseSettings):
         data_dir = Path(self.db_query_data_dir).expanduser()
         data_dir.mkdir(parents=True, exist_ok=True)
         return data_dir / "db_query.db"
+
+    @property
+    def export_temp_path(self) -> Path:
+        """Get export temporary directory path."""
+        temp_dir = Path(self.export_temp_dir).expanduser()
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        return temp_dir
 
 
 settings = Settings()
