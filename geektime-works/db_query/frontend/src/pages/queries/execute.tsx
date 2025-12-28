@@ -2,12 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Card, Button, Space, Spin, Alert, List, Typography } from "antd";
+import { Card, Button, Space, Spin, Alert, List, Typography, Divider } from "antd";
 import { PlayCircleOutlined, ReloadOutlined } from "@ant-design/icons";
 import { apiClient } from "../../services/api";
 import { QueryResult, QueryHistoryEntry, QueryInput } from "../../types/query";
 import { SqlEditor } from "../../components/SqlEditor";
 import { ResultTable } from "../../components/ResultTable";
+import { ExportButton } from "../../components/query/ExportButton";
+import { ExportDialog } from "../../components/export/ExportDialog";
+import { ExportProgress } from "../../components/export/ExportProgress";
+import type { ExportRequest } from "../../types/export";
 
 const { Text } = Typography;
 
@@ -19,6 +23,12 @@ export const QueryExecute: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<QueryHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Export related states
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showExportProgress, setShowExportProgress] = useState(false);
+  const [exportTaskId, setExportTaskId] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (databaseName) {
@@ -76,6 +86,72 @@ export const QueryExecute: React.FC = () => {
     setResult(null);
   };
 
+  // Export handlers
+  const handleExportClick = () => {
+    setShowExportDialog(true);
+  };
+
+  const handleExportConfirm = async (request: ExportRequest) => {
+    setShowExportDialog(false);
+
+    try {
+      // Use the export service from ExportButton component
+      const { exportService } = await import('../../services/export');
+
+      // Check file size first
+      const checkResponse = await exportService.checkExportSize(databaseName!, {
+        sql: request.sql,
+        format: request.format,
+        exportAll: request.exportAll,
+      });
+
+      if (!checkResponse.shouldProceed) {
+        // Show warning dialog
+        const modal = window.confirm(
+          `${checkResponse.warningMessage || '文件可能过大，是否继续导出？'}\n` +
+          `预估大小: ${checkResponse.estimatedMb} MB`
+        );
+
+        if (!modal) {
+          return;
+        }
+      }
+
+      // Create export task
+      const taskResponse = await exportService.createExport(
+        databaseName!,
+        request.sql,
+        request.format,
+        request.exportAll
+      );
+
+      setExportTaskId(taskResponse.taskId);
+      setShowExportProgress(true);
+    } catch (error: any) {
+      setExportError(error.message || '导出失败');
+      setShowExportProgress(true);
+    }
+  };
+
+  const handleExportComplete = (fileUrl: string, fileName: string) => {
+    setShowExportProgress(false);
+    setExportTaskId(null);
+    setExportError(null);
+    // You can add additional completion logic here
+  };
+
+  const handleExportError = (error: string) => {
+    setExportError(error);
+    setShowExportProgress(false);
+    setExportTaskId(null);
+  };
+
+  const handleExportProgressClose = () => {
+    setShowExportProgress(false);
+    setExportTaskId(null);
+    setExportError(null);
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <Card
@@ -97,6 +173,12 @@ export const QueryExecute: React.FC = () => {
             >
               Refresh History
             </Button>
+            <ExportButton
+              databaseName={databaseName!}
+              sql={sql}
+              disabled={!sql.trim() || !result}
+              onClick={handleExportClick}
+            />
           </Space>
         }
       >
@@ -181,6 +263,43 @@ export const QueryExecute: React.FC = () => {
           />
         )}
       </Card>
+
+      {/* Export Dialog */}
+      {databaseName && result && (
+        <ExportDialog
+          visible={showExportDialog}
+          onOk={handleExportConfirm}
+          onCancel={() => setShowExportDialog(false)}
+          sql={sql}
+          databaseName={databaseName}
+          totalRows={result.rowCount}
+          hasMoreData={result.hasMoreData}
+        />
+      )}
+
+      {/* Export Progress Dialog */}
+      {showExportProgress && exportTaskId && (
+        <ExportProgress
+          visible={showExportProgress}
+          taskId={exportTaskId}
+          onCancel={handleExportProgressClose}
+          onComplete={handleExportComplete}
+          onError={handleExportError}
+        />
+      )}
+
+      {/* Export Error Alert */}
+      {exportError && (
+        <Alert
+          message="Export Error"
+          description={exportError}
+          type="error"
+          showIcon
+          closable
+          onClose={() => setExportError(null)}
+          style={{ marginTop: 16 }}
+        />
+      )}
     </div>
   );
 };

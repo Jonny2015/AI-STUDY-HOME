@@ -92,39 +92,39 @@
 
 ### Tests for User Story 1
 
-- [ ] T045 [P] [US1] 编写导出文件大小估算的单元测试,测试 metadata/sample/actual 三种估算方法,创建 backend/tests/test_export_size_estimation.py
-- [ ] T046 [P] [US1] 编写 CSV 格式转换的单元测试,验证特殊字符、中文、换行符的正确转义,创建 backend/tests/test_export_csv.py
-- [ ] T047 [P] [US1] 编写 JSON 格式转换的单元测试,验证 datetime/Decimal/bytes 类型的正确序列化,创建 backend/tests/test_export_json.py
-- [ ] T048 [P] [US1] 编写导出约束验证的单元测试,验证文件大小限制和并发限制检查,创建 backend/tests/test_export_constraints.py
-- [ ] T049 [P] [US1] 编写导出 API 端点的集成测试,测试创建任务、查询状态、下载文件的完整流程,创建 backend/tests/test_api_export.py
-- [ ] T050 [P] [US1] 编写导出按钮组件的单元测试,验证点击事件和格式选择逻辑,创建 frontend/tests/components/export/ExportButton.test.tsx
+- [X] T045 [P] [US1] 编写导出文件大小估算的单元测试,测试 metadata/sample/actual 三种估算方法,创建 backend/tests/test_export_size_estimation.py
+- [X] T046 [P] [US1] 编写 CSV 格式转换的单元测试,验证特殊字符、中文、换行符的正确转义,创建 backend/tests/test_export_csv.py
+- [X] T047 [P] [US1] 编写 JSON 格式转换的单元测试,验证 datetime/Decimal/bytes 类型的正确序列化,创建 backend/tests/test_export_json.py
+- [X] T048 [P] [US1] 编写导出约束验证的单元测试,验证文件大小限制和并发限制检查,创建 backend/tests/test_export_constraints.py
+- [X] T049 [P] [US1] 编写导出 API 端点的集成测试,测试创建任务、查询状态、下载文件的完整流程,创建 backend/tests/test_api_export.py
+- [X] T050 [P] [US1] 编写导出按钮组件的单元测试,验证点击事件和格式选择逻辑,创建 frontend/tests/components/export/ExportButton.test.tsx
 
 ### Implementation for User Story 1
 
-- [ ] T051 [P] [US1] 创建前端导出配置对话框组件 frontend/src/components/export/ExportDialog.tsx,实现导出格式选择(CSV/JSON/MD)、导出范围选择(当前页/全部数据)、预估文件大小显示
-- [ ] T052 [P] [US1] 创建前端导出进度显示组件 frontend/src/components/export/ExportProgress.tsx,实现进度条、百分比显示、取消按钮、完成提示
-- [ ] T053 [US1] 集成导出功能到查询页面 frontend/src/pages/query/QueryPage.tsx,在 ResultTable 组件旁添加 ExportButton,点击后显示 ExportDialog
-- [ ] T054 [US1] 实现前端导出流程逻辑,在 ExportDialog 中调用 checkExportSize API 检查文件大小,显示警告或阻止导出
-- [ ] T055 [US1] 实现前端导出流程逻辑,在 ExportDialog 确认后调用 createExport API 创建任务并轮询任务状态
-- [ ] T056 [US1] 实现前端导出进度更新,通过轮询 getTaskStatus API(1秒间隔)更新 ExportProgress 组件,显示实时进度
-- [ ] T057 [US1] 实现前端导出完成处理,任务完成后调用 downloadFile API 下载文件,显示成功提示并关闭进度对话框
-- [ ] T058 [US1] 实现前端导出错误处理,捕获任务失败状态,显示错误信息并提供重试选项
-- [ ] T059 [US1] 实现前端导出取消逻辑,在 ExportProgress 组件中点击取消按钮调用 cancelTask API,清理前端状态
-- [ ] T060 [US1] 在后端 ExportService.export_to_csv 方法中实现分批处理逻辑,使用 batch_size=1000 减少内存峰值
-- [ ] T061 [US1] 在后端 ExportService.export_to_csv 方法中添加进度回调,每处理完一批数据调用 _update_progress 更新进度
-- [ ] T062 [US1] 在后端 ExportService.export_to_json 方法中实现分批处理逻辑,使用 batch_size=1000 减少内存峰值
-- [ ] T063 [US1] 在后端 ExportService.export_to_json 方法中添加进度回调,每处理完一批数据调用 _update_progress 更新进度
-- [ ] T064 [US1] 在后端 ExportService.export_to_markdown 方法中实现分批处理逻辑,使用 batch_size=1000 减少内存峰值
-- [ ] T065 [US1] 在后端 ExportService.export_to_markdown 方法中添加进度回调,每处理完一批数据调用 _update_progress 更新进度
-- [ ] T066 [US1] 在后端 ExportService.execute_export 方法中实现文件保存逻辑,将生成的文件保存到临时目录并更新 file_path 字段
-- [ ] T067 [US1] 在后端 ExportService.execute_export 方法中添加错误处理,捕获导出过程中的异常,更新任务状态为 failed 并记录 error_message
-- [ ] T068 [US1] 在后端 ExportService.execute_export 方法中添加超时控制,使用 asyncio.wait_for 实现 5 分钟超时限制
-- [ ] T069 [US1] 在后端 ExportService.execute_export 方法中添加审计日志记录,记录用户 ID、时间戳、数据源、格式、文件大小等基本信息
-- [ ] T070 [US1] 在后端 POST /api/v1/dbs/{name}/export 端点中实现并发限制检查,查询 TaskManager 中用户的活跃任务数量,超过 3 个则返回 429 错误
-- [ ] T071 [US1] 在后端 POST /api/v1/dbs/{name}/export 端点中实现 SQL 验证,调用 sql_validator 验证仅允许 SELECT 查询
-- [ ] T072 [US1] 在后端 GET /api/v1/exports/download/{filename} 端点中实现文件流式下载,设置正确的 Content-Disposition 头和 MIME 类型
-- [ ] T073 [US1] 在后端 GET /api/v1/exports/download/{filename} 端点中添加文件存在性检查,文件不存在或已过期返回 404 错误
-- [ ] T074 [US1] 在前端 ExportButton 组件中实现空结果检查,查询结果为空时显示"无数据可导出"提示并禁用导出按钮
+- [X] T051 [P] [US1] 创建前端导出配置对话框组件 frontend/src/components/export/ExportDialog.tsx,实现导出格式选择(CSV/JSON/MD)、导出范围选择(当前页/全部数据)、预估文件大小显示
+- [X] T052 [P] [US1] 创建前端导出进度显示组件 frontend/src/components/export/ExportProgress.tsx,实现进度条、百分比显示、取消按钮、完成提示
+- [X] T053 [US1] 集成导出功能到查询页面 frontend/src/pages/queries/execute.tsx,在 ResultTable 组件旁添加 ExportButton,点击后显示 ExportDialog
+- [X] T054 [US1] 实现前端导出流程逻辑,在 ExportDialog 中调用 checkExportSize API 检查文件大小,显示警告或阻止导出
+- [X] T055 [US1] 实现前端导出流程逻辑,在 ExportDialog 确认后调用 createExport API 创建任务并轮询任务状态
+- [X] T056 [US1] 实现前端导出进度更新,通过轮询 getTaskStatus API(1秒间隔)更新 ExportProgress 组件,显示实时进度
+- [X] T057 [US1] 实现前端导出完成处理,任务完成后调用 downloadFile API 下载文件,显示成功提示并关闭进度对话框
+- [X] T058 [US1] 实现前端导出错误处理,捕获任务失败状态,显示错误信息并提供重试选项
+- [X] T059 [US1] 实现前端导出取消逻辑,在 ExportProgress 组件中点击取消按钮调用 cancelTask API,清理前端状态
+- [X] T060 [US1] 在后端 ExportService.export_to_csv 方法中实现分批处理逻辑,使用 batch_size=1000 减少内存峰值
+- [X] T061 [US1] 在后端 ExportService.export_to_csv 方法中添加进度回调,每处理完一批数据调用 _update_progress 更新进度
+- [X] T062 [US1] 在后端 ExportService.export_to_json 方法中实现分批处理逻辑,使用 batch_size=1000 减少内存峰值
+- [X] T063 [US1] 在后端 ExportService.export_to_json 方法中添加进度回调,每处理完一批数据调用 _update_progress 更新进度
+- [X] T064 [US1] 在后端 ExportService.export_to_markdown 方法中实现分批处理逻辑,使用 batch_size=1000 减少内存峰值
+- [X] T065 [US1] 在后端 ExportService.export_to_markdown 方法中添加进度回调,每处理完一批数据调用 _update_progress 更新进度
+- [X] T066 [US1] 在后端 ExportService.execute_export 方法中实现文件保存逻辑,将生成的文件保存到临时目录并更新 file_path 字段
+- [X] T067 [US1] 在后端 ExportService.execute_export 方法中添加错误处理,捕获导出过程中的异常,更新任务状态为 failed 并记录 error_message
+- [X] T068 [US1] 在后端 ExportService.execute_export 方法中添加超时控制,使用 asyncio.wait_for 实现 5 分钟超时限制
+- [X] T069 [US1] 在后端 ExportService.execute_export 方法中添加审计日志记录,记录用户 ID、时间戳、数据源、格式、文件大小等基本信息
+- [X] T070 [US1] 在后端 POST /api/v1/dbs/{name}/export 端点中实现并发限制检查,查询 TaskManager 中用户的活跃任务数量,超过 3 个则返回 429 错误
+- [X] T071 [US1] 在后端 POST /api/v1/dbs/{name}/export 端点中实现 SQL 验证,调用 sql_validator 验证仅允许 SELECT 查询
+- [X] T072 [US1] 在后端 GET /api/v1/exports/download/{filename} 端点中实现文件流式下载,设置正确的 Content-Disposition 头和 MIME 类型
+- [X] T073 [US1] 在后端 GET /api/v1/exports/download/{filename} 端点中添加文件存在性检查,文件不存在或已过期返回 404 错误
+- [X] T074 [US1] 在前端 ExportButton 组件中实现空结果检查,查询结果为空时显示"无数据可导出"提示并禁用导出按钮
 
 **Checkpoint**: 用户可以手动导出查询结果为 CSV/JSON/MD 格式
 

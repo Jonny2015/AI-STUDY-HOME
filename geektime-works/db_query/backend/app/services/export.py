@@ -518,13 +518,22 @@ class ExportService:
             # Validate export constraints
             await self._validate_export_constraints(adapter, sql, export_format)
 
-            # Execute export based on format
+            # Execute export with timeout control
             if export_format == ExportFormat.CSV:
-                await self._export_to_csv(task, adapter, sql)
+                await asyncio.wait_for(
+                    self._export_to_csv(task, adapter, sql),
+                    timeout=self.timeout
+                )
             elif export_format == ExportFormat.JSON:
-                await self._export_to_json(task, adapter, sql)
+                await asyncio.wait_for(
+                    self._export_to_json(task, adapter, sql),
+                    timeout=self.timeout
+                )
             elif export_format == ExportFormat.MARKDOWN:
-                await self._export_to_markdown(task, adapter, sql)
+                await asyncio.wait_for(
+                    self._export_to_markdown(task, adapter, sql),
+                    timeout=self.timeout
+                )
 
             # Get file size
             file_size = task.file_path.stat().st_size
