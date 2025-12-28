@@ -151,7 +151,7 @@ specs/001-db-query-tool/
 ### Source Code (repository root)
 
 ```text
-w2/db_query/
+.
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
@@ -234,7 +234,7 @@ w2/db_query/
 
 **Structure Decision**: Web application structure (Option 2) selected because this is a full-stack application with distinct frontend (React SPA) and backend (FastAPI REST API) components. The backend serves as a REST API server, and the frontend is a standalone SPA that communicates via HTTP. This separation enables independent development, testing, and potential future deployment strategies.
 
-The project is located at `w2/db_query/` to align with the course week structure.
+The project is located at `.` to align with the course week structure.
 
 ## Complexity Tracking
 

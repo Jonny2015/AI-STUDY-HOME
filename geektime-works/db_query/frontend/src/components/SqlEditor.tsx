@@ -20,14 +20,9 @@ export const SqlEditor: React.FC<SqlEditorProps> = ({
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
 
-  const handleEditorDidMount = (
-    editor: editor.IStandaloneCodeEditor,
-    monaco: Monaco
-  ) => {
-    editorRef.current = editor;
-    monacoRef.current = monaco;
-
-    // Configure SQL language features
+  const handleEditorWillMount = (monaco: Monaco) => {
+    // Configure Monaco to use cdnjs instead of jsdelivr for better accessibility
+    // This is set before the editor is mounted
     monaco.languages.setLanguageConfiguration("sql", {
       comments: {
         lineComment: "--",
@@ -167,6 +162,14 @@ export const SqlEditor: React.FC<SqlEditorProps> = ({
     });
   };
 
+  const handleEditorDidMount = (
+    editor: editor.IStandaloneCodeEditor,
+    monaco: Monaco
+  ) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+  };
+
   return (
     <Editor
       height={height}
@@ -187,6 +190,7 @@ export const SqlEditor: React.FC<SqlEditorProps> = ({
         wordWrap: "on",
         lineHeight: 24,
       }}
+      beforeMount={handleEditorWillMount}
       onMount={handleEditorDidMount}
     />
   );

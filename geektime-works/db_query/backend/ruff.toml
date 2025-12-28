@@ -1,0 +1,84 @@
+# Ruff configuration for Database Query Tool Backend
+# https://docs.astral.sh/ruff/
+
+# Line length to enforce
+line-length = 100
+
+# Target Python version
+target-version = "py312"
+
+# Source code directories
+src = ["app", "tests"]
+
+# Exclude directories
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "*.egg-info",
+    ".mypy_cache",
+    ".pytest_cache",
+    "build",
+    "dist",
+]
+
+[lint]
+# Enable specific rule sets
+# E: pycodestyle errors
+# F: Pyflakes
+# I: isort
+# N: pep8-naming
+# W: pycodestyle warnings
+# UP: pyupgrade
+# B: flake8-bugbear
+# C4: flake8-comprehensions
+# SIM: flake8-simplify
+select = [
+    "E",
+    "F",
+    "I",
+    "N",
+    "W",
+    "UP",
+    "B",
+    "C4",
+    "SIM",
+]
+
+# Ignore specific rules
+ignore = [
+    # E501: Line too long (handled by formatter)
+    "E501",
+    # B008: Do not perform function calls in argument defaults
+    "B008",
+]
+
+# Allow autofix for all enabled rules
+fixable = ["ALL"]
+unfixable = []
+
+[format]
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"
+
+# Respect magic trailing comma
+skip-magic-trailing-comma = false
+
+# Line ending style
+line-ending = "auto"
+
+[per-file-ignores]
+# Ignore specific rules in test files
+"tests/**/*.py" = [
+    "S101",  # Allow assert in tests
+    "ARG",   # Allow unused arguments in test fixtures
+]
+
+# __init__.py can have unused imports
+"__init__.py" = [
+    "F401",  # Allow unused imports
+]

@@ -39,9 +39,14 @@ export const DatabaseCreate: React.FC = () => {
               pattern: /^postgresql:\/\//,
               message: "URL must start with postgresql://",
             },
+            {
+              pattern: /:\d+/, // 验证包含端口号
+              message: "URL must contain a valid port number (e.g., :5432)",
+            },
           ]}
+          extra="Example: postgresql://postgres:password@localhost:5432/mydb"
         >
-          <Input placeholder="postgresql://user:password@host:port/database" />
+          <Input placeholder="postgresql://postgres:password@localhost:5432/mydb" />
         </Form.Item>
         <Form.Item label="Description" name="description">
           <Input.TextArea rows={3} placeholder="Optional description" />

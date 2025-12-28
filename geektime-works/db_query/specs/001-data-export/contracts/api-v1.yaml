@@ -1,0 +1,852 @@
+openapi: 3.0.3
+info:
+  title: 数据导出功能 API
+  description: |
+    数据库查询工具的导出功能 API 规范。
+
+    **功能特性**:
+    - 支持导出为 CSV、JSON、Markdown 三种格式
+    - 支持导出当前页或全部数据
+    - 实时进度跟踪
+    - AI 智能导出助手
+    - 并发限制(单用户最多3个任务)
+
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: 开发环境
+  - url: https://api.example.com
+    description: 生产环境
+
+tags:
+  - name: exports
+    description: 导出操作
+  - name: tasks
+    description: 任务管理
+  - name: ai
+    description: AI 导出助手
+
+paths:
+  /api/v1/dbs/{name}/export:
+    post:
+      tags:
+        - exports
+      summary: 创建导出任务
+      description: |
+        创建一个新的导出任务,返回任务 ID。
+
+        **限制**:
+        - 单用户并发任务不超过 3 个
+        - 预估文件大小不超过 100MB
+
+      operationId: createExportTask
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: 数据库连接名称
+          schema:
+            type: string
+          example: postgres_db
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+            examples:
+              csvCurrent:
+                summary: 导出当前页为 CSV
+                value:
+                  sql: "SELECT * FROM users LIMIT 1000"
+                  format: "csv"
+                  exportAll: false
+              jsonAll:
+                summary: 导出全部数据为 JSON
+                value:
+                  sql: "SELECT * FROM orders WHERE order_date >= '2025-01-01'"
+                  format: "json"
+                  exportAll: true
+      responses:
+        '200':
+          description: 任务创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+              examples:
+                success:
+                  summary: 成功创建任务
+                  value:
+                    taskId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    status: "pending"
+                    progress: 0
+                    estimatedFileSizeMb: 2.5
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          description: 超过并发限制
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "您已有3个导出任务正在进行,请等待完成后再试"
+        '413':
+          description: 文件大小超过限制
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "预估文件大小 150.5MB 超过限制 (100MB)"
+
+  /api/v1/dbs/{name}/export/check:
+    post:
+      tags:
+        - exports
+      summary: 检查导出文件大小
+      description: |
+        在创建导出任务前检查预估文件大小。
+
+        返回:
+        - 是否允许导出
+        - 预估文件大小
+        - 警告信息(如果接近限制)
+
+      operationId: checkExportSize
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportCheckRequest'
+      responses:
+        '200':
+          description: 检查完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportCheckResponse'
+              examples:
+                allowed:
+                  summary: 允许导出
+                  value:
+                    allowed: true
+                    estimatedSize:
+                      estimatedBytes: 5242880
+                      estimatedMb: 5.0
+                      bytesPerRow: 512
+                      method: "metadata"
+                      confidence: "medium"
+                    warning: null
+                    recommendation: null
+                warning:
+                  summary: 接近限制,显示警告
+                  value:
+                    allowed: true
+                    estimatedSize:
+                      estimatedBytes: 89478485
+                      estimatedMb: 85.3
+                      bytesPerRow: 875
+                      method: "sample"
+                      confidence: "high"
+                    warning: "预估文件大小 85.3MB 接近限制"
+                    recommendation: "建议使用采样获取更准确的估算,或减少导出数据量"
+                blocked:
+                  summary: 超过限制,阻止导出
+                  value:
+                    allowed: false
+                    estimatedSize:
+                      estimatedBytes: 157286400
+                      estimatedMb: 150.0
+                      bytesPerRow: 1024
+                      method: "metadata"
+                      confidence: "low"
+                    warning: "预估文件大小 150.0 MB 超过限制 (100 MB)"
+                    recommendation: "建议分批导出或仅导出当前页数据"
+
+  /api/v1/tasks/{task_id}:
+    get:
+      tags:
+        - tasks
+      summary: 查询任务状态
+      description: |
+        查询导出任务的当前状态和进度。
+
+        **前端轮询建议**: 每 1-2 秒轮询一次
+
+      operationId: getTaskStatus
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: 任务 ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 任务状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+              examples:
+                pending:
+                  summary: 等待中
+                  value:
+                    taskId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    status: "pending"
+                    progress: 0
+                    fileUrl: null
+                    error: null
+                running:
+                  summary: 执行中
+                  value:
+                    taskId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    status: "running"
+                    progress: 45
+                    fileUrl: null
+                    error: null
+                completed:
+                  summary: 已完成
+                  value:
+                    taskId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    status: "completed"
+                    progress: 100
+                    fileUrl: "/api/v1/exports/download/export-a1b2c3d4.csv"
+                    error: null
+                failed:
+                  summary: 失败
+                  value:
+                    taskId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    status: "failed"
+                    progress: 23
+                    fileUrl: null
+                    error: "Database connection lost"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - tasks
+      summary: 取消任务
+      description: |
+        取消正在执行或等待中的导出任务。
+
+        **注意**:
+        - 只能取消 `pending` 或 `running` 状态的任务
+        - 已完成的任务无法取消
+
+      operationId: cancelTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 任务已取消
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "任务已取消"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/exports/download/{filename}:
+    get:
+      tags:
+        - exports
+      summary: 下载导出文件
+      description: |
+        下载已完成的导出文件。
+
+        **注意**: 文件会在任务完成后保留 7 天
+
+      operationId: downloadExportFile
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          description: 文件名 (格式: export-<uuid>.<ext>)
+          schema:
+            type: string
+          example: "export-a1b2c3d4-e5f6-7890-abcd-ef1234567890.csv"
+      responses:
+        '200':
+          description: 文件下载
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                type: string
+                format: binary
+            text/markdown:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="export-a1b2c3d4.csv"'
+            Content-Length:
+              schema:
+                type: integer
+                example: 5242880
+        '404':
+          description: 文件不存在或已过期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "文件不存在或已过期"
+
+  /api/v1/export/analyze-intent:
+    post:
+      tags:
+        - ai
+      summary: 分析导出意图
+      description: |
+        AI 分析查询结果,判断是否应该建议导出。
+
+        **返回**:
+        - 是否建议导出
+        - 建议的格式和范围
+        - AI 置信度和理由
+
+      operationId: analyzeExportIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportIntentRequest'
+      responses:
+        '200':
+          description: 分析完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportIntentResponse'
+              examples:
+                suggestExport:
+                  summary: 建议导出
+                  value:
+                    shouldSuggestExport: true
+                    confidence: "high"
+                    reason: "发现1500条订单数据,建议导出进行财务分析"
+                    suggestedFormat: "csv"
+                    suggestedScope: "all_data"
+                    clarificationQuestion: null
+                noSuggestion:
+                  summary: 不建议导出
+                  value:
+                    shouldSuggestExport: false
+                    confidence: "high"
+                    reason: "查询返回空结果"
+                    suggestedFormat: null
+                    suggestedScope: null
+                    clarificationQuestion: null
+                needsClarification:
+                  summary: 需要澄清
+                  value:
+                    shouldSuggestExport: true
+                    confidence: "low"
+                    reason: "查询涉及多个表,不确定导出需求"
+                    suggestedFormat: null
+                    suggestedScope: null
+                    clarificationQuestion: "您希望导出哪些字段?需要包含关联的订单数据吗?"
+
+  /api/v1/export/generate-sql:
+    post:
+      tags:
+        - ai
+      summary: 生成导出 SQL
+      description: |
+        AI 根据自然语言需求生成优化的导出 SQL 查询。
+
+      operationId: generateExportSQL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateSQLRequest'
+      responses:
+        '200':
+          description: SQL 生成完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateSQLResponse'
+              example:
+                sql: "SELECT p.name, SUM(o.quantity) as total_sold, SUM(o.quantity * p.price) as revenue FROM products p JOIN orders o ON p.id = o.product_id WHERE o.order_date >= NOW() - INTERVAL '1 month' GROUP BY p.id, p.name ORDER BY revenue DESC LIMIT 10"
+                explanation: "从订单表中筛选最近一个月的数据,按产品分组统计销售额,按收入降序排列"
+                estimatedRows: 10
+                performanceTips:
+                  - "已在 order_date 上创建索引可加速查询"
+                  - "考虑添加 WHERE o.status = 'completed' 仅统计已完成订单"
+                warnings:
+                  - "如果订单表数据量巨大(>100万行),建议先预估查询时间"
+
+  /api/v1/export/proactive-suggestion:
+    post:
+      tags:
+        - ai
+      summary: 获取主动导出建议
+      description: |
+        AI 生成友好的导出建议文本,在查询完成后主动显示。
+
+      operationId: getProactiveSuggestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProactiveSuggestionRequest'
+      responses:
+        '200':
+          description: 建议生成完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProactiveSuggestionResponse'
+              example:
+                suggestionText: "发现1500条2025年订单数据,建议导出为CSV进行财务分析"
+                quickActions:
+                  - "导出CSV"
+                  - "导出JSON"
+                valueProposition: "完整年度数据便于财务报表制作和趋势分析"
+
+  /api/v1/export/track-response:
+    post:
+      tags:
+        - ai
+      summary: 记录 AI 建议响应
+      description: |
+        记录用户对 AI 导出建议的响应,用于分析和优化 AI 助手效果。
+
+      operationId: trackSuggestionResponse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackResponseRequest'
+      responses:
+        '200':
+          description: 响应已记录
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "recorded"
+
+  /api/v1/export/analytics:
+    get:
+      tags:
+        - ai
+      summary: 获取 AI 导出分析数据
+      description: |
+        获取 AI 导出建议的效果分析数据,包括接受率、响应分布等。
+
+      operationId: getExportAnalytics
+      parameters:
+        - name: databaseName
+          in: query
+          description: 数据库名称(可选)
+          schema:
+            type: string
+        - name: days
+          in: query
+          description: 统计天数(默认30天)
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: 分析数据
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+              example:
+                totalSuggestions: 150
+                acceptedCount: 120
+                acceptRate: 80.0
+                targetAcceptRate: 80.0
+                responseDistribution:
+                  accepted: 120
+                  rejected: 20
+                  ignored: 8
+                  modified: 2
+                avgResponseTimeMs: 2500.5
+                daysAnalyzed: 30
+
+components:
+  schemas:
+    ExportRequest:
+      type: object
+      required:
+        - sql
+        - format
+      properties:
+        sql:
+          type: string
+          description: SQL 查询语句
+          example: "SELECT * FROM users LIMIT 1000"
+        format:
+          type: string
+          enum: [csv, json, md]
+          description: 导出格式
+          example: "csv"
+        exportAll:
+          type: boolean
+          description: 是否导出全部数据 (false=仅当前页)
+          default: false
+          example: false
+
+    ExportCheckRequest:
+      type: object
+      required:
+        - sql
+        - format
+      properties:
+        sql:
+          type: string
+          description: SQL 查询语句
+        format:
+          type: string
+          enum: [csv, json, md]
+          description: 导出格式
+        useSampling:
+          type: boolean
+          description: 是否使用采样精确估算
+          default: false
+        sampleSize:
+          type: integer
+          description: 采样行数
+          default: 100
+          minimum: 10
+          maximum: 1000
+
+    ExportCheckResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+          description: 是否允许导出
+        estimatedSize:
+          $ref: '#/components/schemas/SizeEstimate'
+        warning:
+          type: string
+          nullable: true
+          description: 警告信息(如果接近限制)
+        recommendation:
+          type: string
+          nullable: true
+          description: 建议
+
+    SizeEstimate:
+      type: object
+      properties:
+        estimatedBytes:
+          type: integer
+          description: 预估文件大小(字节)
+        estimatedMb:
+          type: number
+          format: float
+          description: 预估文件大小(MB)
+        bytesPerRow:
+          type: integer
+          description: 每行平均大小(字节)
+        method:
+          type: string
+          enum: [metadata, sample, actual]
+          description: 估算方法
+        confidence:
+          type: string
+          enum: [low, medium, high]
+          description: 估算置信度
+        sampleSize:
+          type: integer
+          nullable: true
+          description: 采样大小(如果使用采样方法)
+
+    TaskResponse:
+      type: object
+      properties:
+        taskId:
+          type: string
+          format: uuid
+          description: 任务 ID
+        status:
+          type: string
+          enum: [pending, running, completed, failed, cancelled]
+          description: 任务状态
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: 进度百分比
+        fileUrl:
+          type: string
+          nullable: true
+          description: 下载链接(完成后)
+        error:
+          type: string
+          nullable: true
+          description: 错误信息(失败时)
+
+    ExportIntentRequest:
+      type: object
+      required:
+        - databaseName
+        - sqlText
+        - rowCount
+        - executionTimeMs
+      properties:
+        databaseName:
+          type: string
+          description: 数据库名称
+        sqlText:
+          type: string
+          description: SQL 查询文本
+        rowCount:
+          type: integer
+          description: 返回行数
+        executionTimeMs:
+          type: integer
+          description: 执行时间(毫秒)
+
+    ExportIntentResponse:
+      type: object
+      properties:
+        shouldSuggestExport:
+          type: boolean
+          description: 是否应该建议导出
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          description: AI 置信度
+        reason:
+          type: string
+          description: 理由说明
+        suggestedFormat:
+          type: string
+          enum: [csv, json, markdown]
+          nullable: true
+          description: 建议的导出格式
+        suggestedScope:
+          type: string
+          enum: [current_page, all_data]
+          nullable: true
+          description: 建议的导出范围
+        clarificationQuestion:
+          type: string
+          nullable: true
+          description: 需要向用户澄清的问题(如果不确定)
+
+    GenerateSQLRequest:
+      type: object
+      required:
+        - databaseName
+        - userPrompt
+        - dbType
+      properties:
+        databaseName:
+          type: string
+          description: 数据库名称
+        userPrompt:
+          type: string
+          description: 用户需求描述
+          example: "导出上个月销售额最高的前10个产品"
+        dbType:
+          type: string
+          enum: [postgresql, mysql]
+          description: 数据库类型
+        formatHint:
+          type: string
+          enum: [csv, json, markdown]
+          description: 格式提示(可选)
+
+    GenerateSQLResponse:
+      type: object
+      properties:
+        sql:
+          type: string
+          description: 生成的 SQL 查询
+        explanation:
+          type: string
+          description: 查询逻辑说明
+        estimatedRows:
+          type: integer
+          description: 预估返回行数
+        performanceTips:
+          type: array
+          items:
+            type: string
+          description: 性能优化建议
+        warnings:
+          type: array
+          items:
+            type: string
+          description: 潜在问题警告
+
+    ProactiveSuggestionRequest:
+      type: object
+      required:
+        - sqlText
+        - rowCount
+        - columns
+        - executionTimeMs
+      properties:
+        sqlText:
+          type: string
+          description: SQL 查询文本
+        rowCount:
+          type: integer
+          description: 返回行数
+        columns:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              dataType:
+                type: string
+          description: 列信息
+        executionTimeMs:
+          type: integer
+          description: 执行时间(毫秒)
+
+    ProactiveSuggestionResponse:
+      type: object
+      properties:
+        suggestionText:
+          type: string
+          description: 建议文本(简洁,不超过30字)
+        quickActions:
+          type: array
+          items:
+            type: string
+          description: 快捷操作按钮文本
+        valueProposition:
+          type: string
+          description: 价值主张说明
+
+    TrackResponseRequest:
+      type: object
+      required:
+        - suggestionId
+        - databaseName
+        - response
+      properties:
+        suggestionId:
+          type: string
+          format: uuid
+          description: 建议唯一标识
+        databaseName:
+          type: string
+          description: 数据库名称
+        response:
+          type: string
+          enum: [accepted, rejected, ignored, modified]
+          description: 用户响应
+        responseTimeMs:
+          type: integer
+          nullable: true
+          description: 响应时间(毫秒)
+
+    AnalyticsResponse:
+      type: object
+      properties:
+        totalSuggestions:
+          type: integer
+          description: 总建议数
+        acceptedCount:
+          type: integer
+          description: 接受数量
+        acceptRate:
+          type: number
+          format: float
+          description: 接受率(百分比)
+        targetAcceptRate:
+          type: number
+          format: float
+          description: 目标接受率
+        responseDistribution:
+          type: object
+          properties:
+            accepted:
+              type: integer
+            rejected:
+              type: integer
+            ignored:
+              type: integer
+            modified:
+              type: integer
+          description: 响应分布
+        avgResponseTimeMs:
+          type: number
+          format: float
+          description: 平均响应时间(毫秒)
+        daysAnalyzed:
+          type: integer
+          description: 统计天数
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: 错误详情
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail: "不支持的导出格式: xyz"
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail: "数据库连接 'test_db' 不存在"

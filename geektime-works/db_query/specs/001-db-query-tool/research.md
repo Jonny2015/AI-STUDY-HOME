@@ -466,7 +466,7 @@ LOG_LEVEL=INFO                  # Logging level
 ### Backend Setup
 
 ```bash
-cd w2/db_query/backend
+cd backend
 
 # Install uv if not installed
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -486,7 +486,7 @@ uvicorn app.main:app --reload --port 8000
 ### Frontend Setup
 
 ```bash
-cd w2/db_query/frontend
+cd frontend
 
 # Install dependencies
 npm install  # or yarn install

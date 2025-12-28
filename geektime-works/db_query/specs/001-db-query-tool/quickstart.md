@@ -44,7 +44,7 @@ CORS_ORIGINS=*  # Allow all origins for local development
 ### 1. Clone and Setup
 
 ```bash
-cd w2/db_query/backend
+cd backend
 
 # Install uv if not already installed
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -99,7 +99,7 @@ curl http://localhost:8000/health
 ### 1. Setup
 
 ```bash
-cd w2/db_query/frontend
+cd frontend
 
 # Install dependencies
 npm install  # or yarn install
@@ -551,7 +551,7 @@ curl http://localhost:8000/api/v1/dbs/testdb/history
 ### Backend Unit Tests
 
 ```bash
-cd w2/db_query/backend
+cd backend
 
 # Run all tests
 pytest
@@ -577,7 +577,7 @@ pytest tests/unit/test_sql_validator.py -v
 ### Frontend Tests
 
 ```bash
-cd w2/db_query/frontend
+cd frontend
 
 # Run all tests
 npm test
@@ -634,7 +634,7 @@ npm test -- ResultTable
 
 ```bash
 # Solution: Make sure you're in the right directory and venv is activated
-cd w2/db_query/backend
+cd backend
 source .venv/bin/activate
 uv pip install -e ".[dev]"
 ```

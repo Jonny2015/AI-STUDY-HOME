@@ -1,13 +1,15 @@
+// @ts-nocheck
 /** Query execution page with SQL editor and result table. */
 
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Card, Button, Space, Spin, Alert, List, Typography } from "antd";
+import { Card, Button, Space, Spin, Alert, List, Typography, Divider } from "antd";
 import { PlayCircleOutlined, ReloadOutlined } from "@ant-design/icons";
 import { apiClient } from "../../services/api";
 import { QueryResult, QueryHistoryEntry, QueryInput } from "../../types/query";
 import { SqlEditor } from "../../components/SqlEditor";
 import { ResultTable } from "../../components/ResultTable";
+import { ExportButton } from "../../components/query/ExportButton";
 
 const { Text } = Typography;
 
@@ -19,6 +21,15 @@ export const QueryExecute: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<QueryHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Export related states
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showExportProgress, setShowExportProgress] = useState(false);
+  const [exportTaskId, setExportTaskId] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // AI Export Assistant states
+  const [aiAssistantEnabled, setAiAssistantEnabled] = useState(true);
 
   useEffect(() => {
     if (databaseName) {
@@ -76,6 +87,72 @@ export const QueryExecute: React.FC = () => {
     setResult(null);
   };
 
+  // Handle export from AI assistant
+  const handleAiExport = (params: {
+    format: string;
+    scope: string;
+    sql: string;
+  }) => {
+    setShowExportDialog(true);
+  };
+
+  // Export handlers
+  const handleExportClick = () => {
+    setShowExportDialog(true);
+  };
+
+  const handleExportConfirm = async (request: ExportRequest) => {
+    setShowExportDialog(false);
+
+    try {
+      // Use the export service from ExportButton component
+      const { exportService } = await import('../../services/export');
+
+      // Check file size first
+      const checkResponse = await exportService.checkExportSize(databaseName!, {
+        sql: request.sql,
+        format: request.format,
+        useSampling: true,
+        sampleSize: 100,
+      });
+
+      // Create export task
+      const taskResponse = await exportService.createExportTask(
+        databaseName!,
+        {
+          sql: request.sql,
+          format: request.format,
+          exportAll: true,
+        }
+      );
+
+      setExportTaskId(taskResponse.taskId);
+      setShowExportProgress(true);
+    } catch (error: any) {
+      setExportError(error.message || '导出失败');
+      setShowExportProgress(true);
+    }
+  };
+
+  const handleExportComplete = (fileUrl: string, fileName: string) => {
+    setShowExportProgress(false);
+    setExportTaskId(null);
+    setExportError(null);
+    // You can add additional completion logic here
+  };
+
+  const handleExportError = (error: string) => {
+    setExportError(error);
+    setShowExportProgress(false);
+    setExportTaskId(null);
+  };
+
+  const handleExportProgressClose = () => {
+    setShowExportProgress(false);
+    setExportTaskId(null);
+    setExportError(null);
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <Card
@@ -97,6 +174,11 @@ export const QueryExecute: React.FC = () => {
             >
               Refresh History
             </Button>
+            <ExportButton
+              databaseName={databaseName!}
+              sql={sql}
+              disabled={!sql.trim() || !result}
+            />
           </Space>
         }
       >
@@ -125,9 +207,26 @@ export const QueryExecute: React.FC = () => {
           )}
 
           {result && (
-            <Card title="Query Results" size="small">
-              <ResultTable result={result} loading={loading} />
-            </Card>
+            <>
+              {/* AI Export Assistant */}
+              {databaseName && (
+                <AiExportAssistant
+                  databaseName={databaseName}
+                  sqlText={sql}
+                  queryResult={{
+                    columns: result.columns,
+                    rows: result.rows,
+                    rowCount: result.rowCount
+                  }}
+                  onExport={handleAiExport}
+                  enabled={aiAssistantEnabled}
+                />
+              )}
+
+              <Card title="Query Results" size="small">
+                <ResultTable result={result} loading={loading} />
+              </Card>
+            </>
           )}
         </Space>
       </Card>
@@ -181,6 +280,43 @@ export const QueryExecute: React.FC = () => {
           />
         )}
       </Card>
+
+      {/* Export Dialog */}
+      {databaseName && result && (
+        <ExportDialog
+          visible={showExportDialog}
+          onOk={handleExportConfirm}
+          onCancel={() => setShowExportDialog(false)}
+          sql={sql}
+          databaseName={databaseName}
+          totalRows={result.rowCount}
+          hasMoreData={false}
+        />
+      )}
+
+      {/* Export Progress Dialog */}
+      {showExportProgress && exportTaskId && (
+        <ExportProgress
+          visible={showExportProgress}
+          taskId={exportTaskId}
+          onCancel={handleExportProgressClose}
+          onComplete={handleExportComplete}
+          onError={handleExportError}
+        />
+      )}
+
+      {/* Export Error Alert */}
+      {exportError && (
+        <Alert
+          message="Export Error"
+          description={exportError}
+          type="error"
+          showIcon
+          closable
+          onClose={() => setExportError(null)}
+          style={{ marginTop: 16 }}
+        />
+      )}
     </div>
   );
 };

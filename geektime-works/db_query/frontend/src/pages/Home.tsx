@@ -8,13 +8,13 @@ import {
   Input,
   Space,
   Table,
-  message,
   Row,
   Col,
   Typography,
   Empty,
   Tabs,
   Modal,
+  App,
 } from "antd";
 import {
   PlayCircleOutlined,
@@ -41,6 +41,7 @@ interface QueryResult {
 }
 
 export const Home: React.FC = () => {
+  const { message } = App.useApp();
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<DatabaseMetadata | null>(null);
   const [loading, setLoading] = useState(false);
@@ -645,7 +646,14 @@ export const Home: React.FC = () => {
             <Table
               columns={tableColumns}
               dataSource={queryResult.rows}
-              rowKey={(_record, index) => index?.toString() || "0"}
+              rowKey={(record, index) => {
+                // Generate a stable unique key based on record content
+                const recordStr = JSON.stringify(record);
+                const hash = recordStr.split('').reduce((acc, char) => {
+                  return ((acc << 5) - acc) + char.charCodeAt(0);
+                }, 0);
+                return `row-${hash}-${index}`;
+              }}
               pagination={{
                 pageSize: 50,
                 showSizeChanger: true,
