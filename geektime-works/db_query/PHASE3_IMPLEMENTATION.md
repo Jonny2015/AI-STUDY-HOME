@@ -82,7 +82,7 @@ Successfully implemented all Phase 3 frontend UI features for the DB Query Tool:
 
 **Files Modified:**
 
-1. `/Users/tchen/projects/mycode/bootcamp/ai/w2/db_query/frontend/src/pages/Home.tsx`
+1. `frontend/src/pages/Home.tsx`
    - Added imports: `Tabs`, `Modal`, `ExclamationCircleOutlined`, `NaturalLanguageInput`
    - Added state: `activeTab`, `generatingSql`, `nlError`
    - Added handlers:
@@ -94,7 +94,7 @@ Successfully implemented all Phase 3 frontend UI features for the DB Query Tool:
    - Replaced SQL Editor Card with Tabs-based UI
    - Updated export buttons with click handlers
 
-2. `/Users/tchen/projects/mycode/bootcamp/ai/w2/db_query/frontend/src/pages/databases/show.tsx`
+2. `frontend/src/pages/databases/show.tsx`
    - Fixed TypeScript warning: unused `Title` import
    - Fixed TypeScript warning: unused `record` parameter
 
@@ -181,7 +181,7 @@ To test Phase 3 features:
 ### Build Verification
 
 ```bash
-cd /Users/tchen/projects/mycode/bootcamp/ai/w2/db_query/frontend
+cd /Users/tchen/projects/mycode/bootcamp/ai/frontend
 npm run build
 ```
 

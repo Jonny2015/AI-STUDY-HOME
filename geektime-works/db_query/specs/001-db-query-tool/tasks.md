@@ -11,7 +11,7 @@
 
 ## Path Conventions
 
-- **Web app**: `w2/db_query/backend/` and `w2/db_query/frontend/`
+- **Web app**: `backend/` and `frontend/`
 
 ---
 
@@ -21,39 +21,39 @@
 
 ### Backend Setup
 
-- [X] T001 Create backend project structure at w2/db_query/backend/
-- [X] T002 Initialize Python project with uv (pyproject.toml) at w2/db_query/backend/pyproject.toml
-- [X] T003 [P] Create .python-version file specifying Python 3.12 at w2/db_query/backend/.python-version
+- [X] T001 Create backend project structure at backend/
+- [X] T002 Initialize Python project with uv (pyproject.toml) at backend/pyproject.toml
+- [X] T003 [P] Create .python-version file specifying Python 3.12 at backend/.python-version
 - [X] T004 [P] Add backend dependencies (FastAPI, Pydantic v2, sqlglot, OpenAI SDK, asyncpg, SQLModel, pytest) to pyproject.toml
-- [X] T005 [P] Create .env.example file with OPENAI_API_KEY template at w2/db_query/backend/.env.example
-- [X] T006 [P] Create .gitignore for Python at w2/db_query/backend/.gitignore
+- [X] T005 [P] Create .env.example file with OPENAI_API_KEY template at backend/.env.example
+- [X] T006 [P] Create .gitignore for Python at backend/.gitignore
 
 ### Frontend Setup
 
-- [X] T007 Create frontend project structure at w2/db_query/frontend/
-- [X] T008 Initialize Vite + React + TypeScript project at w2/db_query/frontend/
+- [X] T007 Create frontend project structure at frontend/
+- [X] T008 Initialize Vite + React + TypeScript project at frontend/
 - [X] T009 [P] Add frontend dependencies (React 19, Refine 5, Ant Design 5, Monaco Editor, Tailwind CSS 4) to package.json
-- [X] T010 [P] Configure TypeScript with strict mode in tsconfig.json at w2/db_query/frontend/tsconfig.json
-- [X] T011 [P] Configure Tailwind CSS in tailwind.config.js at w2/db_query/frontend/tailwind.config.js
-- [X] T012 [P] Create .env.local.example with VITE_API_BASE_URL at w2/db_query/frontend/.env.local.example
-- [X] T013 [P] Create .gitignore for Node.js at w2/db_query/frontend/.gitignore
+- [X] T010 [P] Configure TypeScript with strict mode in tsconfig.json at frontend/tsconfig.json
+- [X] T011 [P] Configure Tailwind CSS in tailwind.config.js at frontend/tailwind.config.js
+- [X] T012 [P] Create .env.local.example with VITE_API_BASE_URL at frontend/.env.local.example
+- [X] T013 [P] Create .gitignore for Node.js at frontend/.gitignore
 
 ### Core Backend Infrastructure
 
-- [X] T014 Create FastAPI application entry point in w2/db_query/backend/app/main.py
-- [X] T015 Configure CORS middleware for all origins in w2/db_query/backend/app/main.py
-- [X] T016 Create Pydantic Settings configuration in w2/db_query/backend/app/config.py
-- [X] T017 Setup SQLite database connection and session in w2/db_query/backend/app/database.py
-- [X] T018 Create Alembic migrations configuration in w2/db_query/backend/alembic.ini
-- [X] T019 Create initial database schema migration in w2/db_query/backend/alembic/versions/001_initial_schema.py
+- [X] T014 Create FastAPI application entry point in backend/app/main.py
+- [X] T015 Configure CORS middleware for all origins in backend/app/main.py
+- [X] T016 Create Pydantic Settings configuration in backend/app/config.py
+- [X] T017 Setup SQLite database connection and session in backend/app/database.py
+- [X] T018 Create Alembic migrations configuration in backend/alembic.ini
+- [X] T019 Create initial database schema migration in backend/alembic/versions/001_initial_schema.py
 
 ### Core Data Models
 
-- [X] T020 [P] Create DatabaseConnection SQLModel in w2/db_query/backend/app/models/database.py
-- [X] T021 [P] Create DatabaseMetadata SQLModel in w2/db_query/backend/app/models/metadata.py
-- [X] T022 [P] Create QueryHistory SQLModel in w2/db_query/backend/app/models/query.py
-- [X] T023 [P] Create API request/response schemas (camelCase) in w2/db_query/backend/app/models/schemas.py
-- [X] T024 Configure Pydantic alias_generator for camelCase globally in w2/db_query/backend/app/models/**init**.py
+- [X] T020 [P] Create DatabaseConnection SQLModel in backend/app/models/database.py
+- [X] T021 [P] Create DatabaseMetadata SQLModel in backend/app/models/metadata.py
+- [X] T022 [P] Create QueryHistory SQLModel in backend/app/models/query.py
+- [X] T023 [P] Create API request/response schemas (camelCase) in backend/app/models/schemas.py
+- [X] T024 Configure Pydantic alias_generator for camelCase globally in backend/app/models/**init**.py
 
 **Checkpoint**: Foundation ready - backend can start, database schema created, models defined
 
@@ -69,14 +69,14 @@
 
 #### Backend Services - US1
 
-- [X] T025 [P] [US1] Implement SQL validator service using sqlglot in w2/db_query/backend/app/services/sql_validator.py
-- [X] T026 [P] [US1] Implement database connection service (test connection, asyncpg pool) in w2/db_query/backend/app/services/db_connection.py
-- [X] T027 [US1] Implement metadata extraction service (query pg_catalog) in w2/db_query/backend/app/services/metadata.py
-- [X] T028 [US1] Implement metadata caching logic in w2/db_query/backend/app/services/metadata.py
+- [X] T025 [P] [US1] Implement SQL validator service using sqlglot in backend/app/services/sql_validator.py
+- [X] T026 [P] [US1] Implement database connection service (test connection, asyncpg pool) in backend/app/services/db_connection.py
+- [X] T027 [US1] Implement metadata extraction service (query pg_catalog) in backend/app/services/metadata.py
+- [X] T028 [US1] Implement metadata caching logic in backend/app/services/metadata.py
 
 #### Backend API - US1
 
-- [X] T029 [US1] Create databases router in w2/db_query/backend/app/api/v1/databases.py
+- [X] T029 [US1] Create databases router in backend/app/api/v1/databases.py
 - [X] T030 [US1] Implement PUT /api/v1/dbs/{name} endpoint (create/update connection) in databases.py
 - [X] T031 [US1] Implement GET /api/v1/dbs endpoint (list all connections) in databases.py
 - [X] T032 [US1] Implement GET /api/v1/dbs/{name} endpoint (get metadata) in databases.py
@@ -85,18 +85,18 @@
 
 #### Frontend Types & Services - US1
 
-- [X] T035 [P] [US1] Create TypeScript types for database connection in w2/db_query/frontend/src/types/database.ts
-- [X] T036 [P] [US1] Create TypeScript types for metadata in w2/db_query/frontend/src/types/metadata.ts
-- [X] T037 [US1] Create Axios API client instance in w2/db_query/frontend/src/services/api.ts
-- [X] T038 [US1] Create Refine data provider in w2/db_query/frontend/src/services/dataProvider.ts
+- [X] T035 [P] [US1] Create TypeScript types for database connection in frontend/src/types/database.ts
+- [X] T036 [P] [US1] Create TypeScript types for metadata in frontend/src/types/metadata.ts
+- [X] T037 [US1] Create Axios API client instance in frontend/src/services/api.ts
+- [X] T038 [US1] Create Refine data provider in frontend/src/services/dataProvider.ts
 
 #### Frontend Pages - US1
 
-- [X] T039 [US1] Setup Refine app with Ant Design in w2/db_query/frontend/src/App.tsx
-- [X] T040 [US1] Create database list page in w2/db_query/frontend/src/pages/databases/list.tsx
-- [X] T041 [US1] Create database create/edit form page in w2/db_query/frontend/src/pages/databases/create.tsx
-- [X] T042 [US1] Create metadata tree view component in w2/db_query/frontend/src/components/MetadataTree.tsx
-- [X] T043 [US1] Create database detail page (show metadata) in w2/db_query/frontend/src/pages/databases/show.tsx
+- [X] T039 [US1] Setup Refine app with Ant Design in frontend/src/App.tsx
+- [X] T040 [US1] Create database list page in frontend/src/pages/databases/list.tsx
+- [X] T041 [US1] Create database create/edit form page in frontend/src/pages/databases/create.tsx
+- [X] T042 [US1] Create metadata tree view component in frontend/src/components/MetadataTree.tsx
+- [X] T043 [US1] Create database detail page (show metadata) in frontend/src/pages/databases/show.tsx
 
 **Checkpoint US1**: Users can add PostgreSQL connections and view table/column metadata
 
@@ -106,28 +106,28 @@
 
 #### Backend Services - US2
 
-- [X] T044 [US2] Implement query execution service (asyncpg execute) in w2/db_query/backend/app/services/query.py
-- [X] T045 [US2] Implement query history management in w2/db_query/backend/app/services/query.py
+- [X] T044 [US2] Implement query execution service (asyncpg execute) in backend/app/services/query.py
+- [X] T045 [US2] Implement query history management in backend/app/services/query.py
 - [X] T046 [US2] Add SQL validation (SELECT only) and LIMIT injection logic in sql_validator.py
 
 #### Backend API - US2
 
-- [X] T047 [US2] Create queries router in w2/db_query/backend/app/api/v1/queries.py
+- [X] T047 [US2] Create queries router in backend/app/api/v1/queries.py
 - [X] T048 [US2] Implement POST /api/v1/dbs/{name}/query endpoint in queries.py
 - [X] T049 [US2] Implement GET /api/v1/dbs/{name}/history endpoint in queries.py
 - [X] T050 [US2] Add error handling for SQL validation errors in queries.py
 
 #### Frontend Types & Components - US2
 
-- [X] T051 [P] [US2] Create TypeScript types for query result in w2/db_query/frontend/src/types/query.ts
-- [X] T052 [US2] Create Monaco-based SQL editor component in w2/db_query/frontend/src/components/SqlEditor.tsx
+- [X] T051 [P] [US2] Create TypeScript types for query result in frontend/src/types/query.ts
+- [X] T052 [US2] Create Monaco-based SQL editor component in frontend/src/components/SqlEditor.tsx
 - [X] T053 [US2] Configure Monaco editor for SQL syntax highlighting and autocomplete in SqlEditor.tsx
-- [X] T054 [US2] Create query result table component in w2/db_query/frontend/src/components/ResultTable.tsx
+- [X] T054 [US2] Create query result table component in frontend/src/components/ResultTable.tsx
 - [X] T055 [US2] Add pagination support to result table in ResultTable.tsx
 
 #### Frontend Pages - US2
 
-- [X] T056 [US2] Create query execution page in w2/db_query/frontend/src/pages/queries/execute.tsx
+- [X] T056 [US2] Create query execution page in frontend/src/pages/queries/execute.tsx
 - [X] T057 [US2] Integrate SQL editor and result table in execute.tsx
 - [X] T058 [US2] Add query history panel in execute.tsx
 - [X] T059 [US2] Add loading state and error display in execute.tsx
@@ -148,21 +148,21 @@
 
 #### Backend Services - US3
 
-- [X] T060 [US3] Implement OpenAI client wrapper in w2/db_query/backend/app/services/nl2sql.py
+- [X] T060 [US3] Implement OpenAI client wrapper in backend/app/services/nl2sql.py
 - [X] T061 [US3] Create prompt template with metadata context in nl2sql.py
 - [X] T062 [US3] Implement natural language to SQL conversion in nl2sql.py
 - [X] T063 [US3] Add error handling for LLM API failures in nl2sql.py
 
 #### Backend API - US3
 
-- [X] T064 [US3] Implement POST /api/v1/dbs/{name}/query/natural endpoint in w2/db_query/backend/app/api/v1/queries.py
+- [X] T064 [US3] Implement POST /api/v1/dbs/{name}/query/natural endpoint in backend/app/api/v1/queries.py
 - [ ] T065 [US3] Add rate limiting for LLM endpoint (optional) in queries.py
 
 #### Frontend Components - US3
 
-- [X] T066 [US3] Create natural language input component in w2/db_query/frontend/src/components/NaturalLanguageInput.tsx
+- [X] T066 [US3] Create natural language input component in frontend/src/components/NaturalLanguageInput.tsx
 - [X] T067 [US3] Add tab switcher (Manual SQL / Natural Language) to query page
-- [X] T068 [US3] Integrate natural language input in w2/db_query/frontend/src/pages/Home.tsx
+- [X] T068 [US3] Integrate natural language input in frontend/src/pages/Home.tsx
 - [X] T069 [US3] Display generated SQL in editor with edit capability in Home.tsx
 
 **Checkpoint US3**: Users can generate SQL from Chinese/English natural language
@@ -173,12 +173,12 @@
 
 #### Backend Services - US4
 
-- [X] T070 [P] [US4] Implement CSV export service in w2/db_query/backend/app/services/export.py
+- [X] T070 [P] [US4] Implement CSV export service in backend/app/services/export.py
 - [X] T071 [P] [US4] Implement JSON export service in export.py
 
 #### Backend API - US4
 
-- [ ] T072 [US4] Implement GET /api/v1/dbs/{name}/query/export endpoint in w2/db_query/backend/app/api/v1/queries.py (NOTE: Frontend implements client-side export instead)
+- [ ] T072 [US4] Implement GET /api/v1/dbs/{name}/query/export endpoint in backend/app/api/v1/queries.py (NOTE: Frontend implements client-side export instead)
 - [ ] T073 [US4] Add query parameters for format selection (csv/json) in queries.py (NOTE: Not needed for client-side export)
 
 #### Frontend Components - US4
@@ -198,23 +198,23 @@
 
 ### Documentation
 
-- [ ] T078 [P] Create backend README.md with setup instructions at w2/db_query/backend/README.md
-- [ ] T079 [P] Create frontend README.md with setup instructions at w2/db_query/frontend/README.md
-- [ ] T080 [P] Create root README.md with project overview at w2/db_query/README.md
+- [ ] T078 [P] Create backend README.md with setup instructions at backend/README.md
+- [ ] T079 [P] Create frontend README.md with setup instructions at frontend/README.md
+- [ ] T080 [P] Create root README.md with project overview at README.md
 - [ ] T081 [P] Add API usage examples to backend README
 
 ### Testing & Quality
 
-- [ ] T082 [P] Add unit tests for SQL validator in w2/db_query/backend/tests/unit/test_sql_validator.py
-- [ ] T083 [P] Add integration tests for database API in w2/db_query/backend/tests/integration/test_api_databases.py
-- [ ] T084 [P] Add integration tests for query API in w2/db_query/backend/tests/integration/test_api_queries.py
-- [ ] T085 [P] Add contract tests for camelCase format in w2/db_query/backend/tests/contract/test_api_contracts.py
+- [ ] T082 [P] Add unit tests for SQL validator in backend/tests/unit/test_sql_validator.py
+- [ ] T083 [P] Add integration tests for database API in backend/tests/integration/test_api_databases.py
+- [ ] T084 [P] Add integration tests for query API in backend/tests/integration/test_api_queries.py
+- [ ] T085 [P] Add contract tests for camelCase format in backend/tests/contract/test_api_contracts.py
 
 ### Developer Tools
 
-- [ ] T086 [P] Setup ruff configuration for backend linting at w2/db_query/backend/ruff.toml
-- [ ] T087 [P] Setup ESLint configuration for frontend at w2/db_query/frontend/eslint.config.js
-- [ ] T088 [P] Create start script for both backend and frontend at w2/db_query/start.sh
+- [ ] T086 [P] Setup ruff configuration for backend linting at backend/ruff.toml
+- [ ] T087 [P] Setup ESLint configuration for frontend at frontend/eslint.config.js
+- [ ] T088 [P] Create start script for both backend and frontend at start.sh
 
 **Checkpoint**: Project is fully documented, tested, and ready for use
 

@@ -4,7 +4,7 @@
 
 Add MySQL database support to the existing db_query backend application, enabling metadata extraction, query execution, and natural language to SQL generation for MySQL databases, parallel to the existing PostgreSQL implementation.
 
-**Reference Implementation**: `w2/db_query/backend` (PostgreSQL)
+**Reference Implementation**: `backend` (PostgreSQL)
 **Test Database**: `todo_db` (MySQL, accessible via `mysql -u root todo_db`)
 
 ---

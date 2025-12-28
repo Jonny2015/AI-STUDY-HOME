@@ -5,7 +5,7 @@ A web-based tool for managing PostgreSQL database connections, viewing metadata,
 ## Project Structure
 
 ```
-db_query/
+.
 ├── backend/          # FastAPI backend (Python 3.12+)
 ├── frontend/         # React frontend (TypeScript, Refine 5)
 ├── fixtures/         # REST Client test files
