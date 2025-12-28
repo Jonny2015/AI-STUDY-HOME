@@ -31,3 +31,6 @@ dist-ssr
 
 # Testing
 coverage
+
+# Monaco Editor local files (can be regenerated from node_modules)
+public/monaco-editor

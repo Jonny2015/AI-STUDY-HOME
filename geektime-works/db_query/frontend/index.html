@@ -5,6 +5,24 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Database Query Tool</title>
+
+    <!-- Configure Monaco Editor to use local files -->
+    <script>
+      (function() {
+        // Configure Monaco to use local files instead of CDN
+        window.require = {
+          paths: {
+            'vs': '/monaco-editor/min/vs'
+          }
+        };
+
+        window.MonacoEnvironment = {
+          getWorkerUrl: function(workerId, label) {
+            return '/monaco-editor/min/vs/base/worker/' + workerId;
+          }
+        };
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

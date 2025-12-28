@@ -206,7 +206,7 @@ class TestExportAPI:
     async def test_download_file_success(self, client, mock_export_service, mock_task_manager):
         """测试成功下载文件"""
         # 设置文件内容
-        file_content = b"id,name\n1,张三\n2,李四\n"
+        file_content = b"id,name\n1,John\n2,Jane\n"
 
         with patch('builtins.open', mock_open(read_data=file_content)):
             # 发送请求

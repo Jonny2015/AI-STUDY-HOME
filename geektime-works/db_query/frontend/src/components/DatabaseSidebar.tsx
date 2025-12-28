@@ -9,8 +9,8 @@ import {
   Input,
   Modal,
   Form,
-  message,
   Popconfirm,
+  App,
 } from "antd";
 import {
   PlusOutlined,
@@ -39,6 +39,7 @@ export const DatabaseSidebar: React.FC<DatabaseSidebarProps> = ({
   selectedDatabase,
   onSelectDatabase,
 }) => {
+  const { message } = App.useApp();
   const [databases, setDatabases] = useState<Database[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);

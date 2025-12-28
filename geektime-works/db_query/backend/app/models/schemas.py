@@ -243,3 +243,59 @@ class AnalyticsResponse(BaseModel):
     response_distribution: dict[str, int] = Field(..., alias="responseDistribution", description="Response distribution")
     avg_response_time_ms: float = Field(..., alias="avgResponseTimeMs", description="Average response time in ms")
     days_analyzed: int = Field(..., alias="daysAnalyzed", description="Number of days analyzed")
+
+
+# AI Export Assistant Schemas
+class ExportIntentAnalysisRequest(BaseModel):
+    """Input schema for AI export intent analysis."""
+
+    database_name: str = Field(..., alias="databaseName", description="Database connection name")
+    sql_text: str = Field(..., alias="sqlText", description="SQL query text")
+    query_result: dict[str, Any] = Field(..., alias="queryResult", description="Query result data")
+
+
+class ExportIntentAnalysisResponse(BaseModel):
+    """Response schema for AI export intent analysis."""
+
+    should_suggest_export: bool = Field(..., alias="shouldSuggestExport", description="Whether to suggest export")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="AI confidence score")
+    reasoning: str = Field(..., description="Reasoning for the suggestion")
+    clarification_needed: bool = Field(..., alias="clarificationNeeded", description="Whether clarification is needed")
+    clarification_question: str | None = Field(None, alias="clarificationQuestion", description="Question to ask user")
+    suggested_format: str = Field(..., alias="suggestedFormat", pattern="^(csv|json|markdown)$", description="Suggested export format")
+    suggested_scope: str = Field(..., alias="suggestedScope", pattern="^(current_page|all_data)$", description="Suggested export scope")
+
+
+class ExportProactiveSuggestionRequest(BaseModel):
+    """Input schema for proactive export suggestion."""
+
+    database_name: str = Field(..., alias="databaseName", description="Database connection name")
+    sql_text: str = Field(..., alias="sqlText", description="SQL query text")
+    query_result: dict[str, Any] = Field(..., alias="queryResult", description="Query result data")
+    intent_analysis: ExportIntentAnalysisResponse = Field(..., alias="intentAnalysis", description="Intent analysis results")
+
+
+class ExportProactiveSuggestionResponse(BaseModel):
+    """Response schema for proactive export suggestion."""
+
+    suggestion_text: str = Field(..., alias="suggestionText", description="Suggestion text")
+    quick_actions: list[dict[str, Any]] = Field(..., alias="quickActions", description="Available quick actions")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="AI confidence score")
+    explanation: str = Field(..., description="Explanation of the suggestion")
+
+
+class ExportTrackResponseRequest(BaseModel):
+    """Input schema for tracking export suggestion response."""
+
+    suggestion_id: str | None = Field(None, alias="suggestionId", description="Suggestion ID (optional)")
+    database_name: str = Field(..., alias="databaseName", description="Database connection name")
+    suggestion_type: str = Field(..., alias="suggestionType", description="Type of suggestion")
+    sql_context: str = Field(..., alias="sqlContext", description="SQL query context")
+    row_count: int = Field(..., alias="rowCount", description="Query result row count")
+    confidence: float = Field(..., description="Confidence score")
+    suggested_format: str = Field(..., alias="suggestedFormat", pattern="^(csv|json|markdown)$", description="Suggested format")
+    suggested_scope: str = Field(..., alias="suggestedScope", pattern="^(current_page|all_data)$", description="Suggested scope")
+    user_response: str = Field(..., pattern="^(ACCEPTED|REJECTED|IGNORED|MODIFIED)$", description="User response type")
+    response_time_ms: int | None = Field(None, alias="responseTimeMs", description="Response time in milliseconds")
+    suggested_at: str | None = Field(None, alias="suggestedAt", description="Suggestion timestamp (ISO format)")
+    responded_at: str | None = Field(None, alias="respondedAt", description="Response timestamp (ISO format)")

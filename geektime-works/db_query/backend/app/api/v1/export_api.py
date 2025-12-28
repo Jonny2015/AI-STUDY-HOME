@@ -316,3 +316,319 @@ async def download_export_file(
         media_type=media_type,
         filename=filename,
     )
+
+
+# AI Export Assistant Endpoints
+from datetime import datetime
+from app.models.export import ExportSuggestionResponse
+from app.models.schemas import (
+    ExportIntentAnalysisRequest,
+    ExportIntentAnalysisResponse,
+    ExportProactiveSuggestionRequest,
+    ExportProactiveSuggestionResponse,
+    ExportTrackResponseRequest,
+    ExportTrackResponseResponse,
+    ExportAnalyticsResponse,
+)
+from uuid import uuid4
+
+
+@router.post("/export/analyze-intent", response_model=dict)
+async def analyze_export_intent(
+    request: dict,
+    user_id: str = Depends(get_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """
+    Analyze if export should be suggested based on query results.
+
+    Args:
+        request: Request containing databaseName, sqlText, and queryResult
+        user_id: User ID from header
+        session: Database session
+
+    Returns:
+        Analysis results with suggestion and confidence
+
+    Raises:
+        HTTPException: If request is invalid or analysis fails
+    """
+    try:
+        # Extract request parameters
+        database_name = request.get("databaseName")
+        sql_text = request.get("sqlText")
+        query_result = request.get("queryResult")
+
+        if not all([database_name, sql_text, query_result]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="databaseName, sqlText, and queryResult are required",
+            )
+
+        # Initialize AI service and analyze
+        from app.services.export import AIExportService
+        ai_service = AIExportService()
+
+        result = await ai_service.analyze_export_intent(
+            database_name=database_name,
+            sql_text=sql_text,
+            query_result=query_result
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing export intent: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze export intent: {str(e)}",
+        )
+
+
+@router.post("/export/proactive-suggestion", response_model=dict)
+async def get_proactive_suggestion(
+    request: dict,
+    user_id: str = Depends(get_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """
+    Generate proactive export suggestion with quick actions.
+
+    Args:
+        request: Request containing databaseName, sqlText, queryResult, and intentAnalysis
+        user_id: User ID from header
+        session: Database session
+
+    Returns:
+        Suggestion text and quick actions
+
+    Raises:
+        HTTPException: If request is invalid or suggestion generation fails
+    """
+    try:
+        # Extract request parameters
+        database_name = request.get("databaseName")
+        sql_text = request.get("sqlText")
+        query_result = request.get("queryResult")
+        intent_analysis = request.get("intentAnalysis")
+
+        if not all([database_name, sql_text, query_result, intent_analysis]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="databaseName, sqlText, queryResult, and intentAnalysis are required",
+            )
+
+        # Initialize AI service and generate suggestion
+        from app.services.export import AIExportService
+        ai_service = AIExportService()
+
+        result = await ai_service.generate_proactive_suggestion(
+            database_name=database_name,
+            sql_text=sql_text,
+            query_result=query_result,
+            intent_analysis=intent_analysis
+        )
+
+        if result is None:
+            raise HTTPException(
+                status_code=status.HTTP_204_NO_CONTENT,
+                detail="No export suggestion available",
+            )
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating proactive suggestion: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate proactive suggestion: {str(e)}",
+        )
+
+
+@router.post("/export/track-response")
+async def track_suggestion_response(
+    request: dict,
+    user_id: str = Depends(get_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """
+    Track user response to AI export suggestion.
+
+    Args:
+        request: Request containing suggestion response data
+        user_id: User ID from header
+        session: Database session
+
+    Returns:
+        Success status message
+
+    Raises:
+        HTTPException: If request is invalid or tracking fails
+    """
+    try:
+        # Extract request parameters
+        suggestion_id = request.get("suggestionId") or str(uuid4())
+        database_name = request.get("databaseName")
+        suggestion_type = request.get("suggestionType")
+        sql_context = request.get("sqlContext")
+        row_count = request.get("rowCount")
+        confidence = request.get("confidence")
+        suggested_format = request.get("suggestedFormat")
+        suggested_scope = request.get("suggestedScope")
+        user_response = request.get("userResponse")
+        response_time_ms = request.get("responseTimeMs", 0)
+        suggested_at_str = request.get("suggestedAt")
+        responded_at_str = request.get("respondedAt")
+
+        # Validate required parameters
+        required_fields = [
+            "databaseName", "suggestionType", "sqlContext", "rowCount",
+            "confidence", "suggestedFormat", "suggestedScope", "userResponse"
+        ]
+
+        missing_fields = [field for field in required_fields if not request.get(field)]
+        if missing_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Missing required fields: {', '.join(missing_fields)}",
+            )
+
+        # Convert format and scope strings to enums
+        from app.models.export import ExportFormat, ExportScope
+        format_map = {
+            'CSV': ExportFormat.CSV,
+            'JSON': ExportFormat.JSON,
+            'MARKDOWN': ExportFormat.MARKDOWN
+        }
+        scope_map = {
+            'CURRENT_PAGE': ExportScope.CURRENT_PAGE,
+            'ALL_DATA': ExportScope.ALL_DATA
+        }
+
+        export_format = format_map.get(suggested_format)
+        export_scope = scope_map.get(suggested_scope)
+
+        if not export_format:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid export format: {suggested_format}",
+            )
+
+        if not export_scope:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid export scope: {suggested_scope}",
+            )
+
+        # Convert string responses to enums
+        response_map = {
+            'ACCEPTED': ExportSuggestionResponse.ACCEPTED,
+            'REJECTED': ExportSuggestionResponse.REJECTED,
+            'IGNORED': ExportSuggestionResponse.IGNORED,
+            'MODIFIED': ExportSuggestionResponse.MODIFIED
+        }
+
+        user_response_enum = response_map.get(user_response)
+        if not user_response_enum:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid user response: {user_response}",
+            )
+
+        # Parse timestamps
+        suggested_at = datetime.fromisoformat(suggested_at_str) if suggested_at_str else datetime.now()
+        responded_at = datetime.fromisoformat(responded_at_str) if responded_at_str else datetime.now()
+
+        # Initialize AI service and track response
+        from app.services.export import AIExportService
+        ai_service = AIExportService()
+
+        success = await ai_service.track_suggestion_response(
+            suggestion_id=suggestion_id,
+            database_name=database_name,
+            suggestion_type=suggestion_type,
+            sql_context=sql_context,
+            row_count=row_count,
+            confidence=confidence,
+            suggested_format=export_format,
+            suggested_scope=export_scope,
+            user_response=user_response_enum,
+            response_time_ms=response_time_ms,
+            suggested_at=suggested_at,
+            responded_at=responded_at
+        )
+
+        if success:
+            return {
+                "success": True,
+                "message": "Response tracked successfully"
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to track response",
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error tracking suggestion response: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to track suggestion response: {str(e)}",
+        )
+
+
+@router.get("/export/analytics", response_model=dict)
+async def get_export_analytics(
+    database_name: str,
+    days: int = 7,
+    user_id: str = Depends(get_user_id),
+    session: Session = Depends(get_session),
+) -> dict:
+    """
+    Get export analytics data for AI suggestions.
+
+    Args:
+        database_name: Database name to filter analytics
+        days: Number of days to look back (default: 7)
+        user_id: User ID from header
+        session: Database session
+
+    Returns:
+        Analytics statistics
+
+    Raises:
+        HTTPException: If analytics retrieval fails
+    """
+    try:
+        # Validate days parameter
+        if days < 1 or days > 365:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Days must be between 1 and 365",
+            )
+
+        # Initialize AI service and get analytics
+        from app.services.export import AIExportService
+        ai_service = AIExportService()
+
+        result = await ai_service.get_export_analytics(
+            database_name=database_name,
+            days=days
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting export analytics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get export analytics: {str(e)}",
+        )

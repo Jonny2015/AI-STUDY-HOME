@@ -13,7 +13,7 @@ from uuid import uuid4
 from app.adapters.base import DatabaseAdapter, QueryResult
 from app.config import settings
 from app.models.database import DatabaseConnection, DatabaseType
-from app.models.export import ExportFormat, ExportScope, TaskStatus, ExportTask
+from app.models.export import ExportFormat, ExportScope, TaskStatus, ExportTask, ExportSuggestionResponse
 from app.models.schemas import ExportCheckResponse, SizeEstimate, TaskResponse
 from app.services.sql_validator import validate_sql
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -909,3 +909,431 @@ class ExportService:
 
         # Remove from task manager
         self.task_manager.remove_task(task.task_id)
+
+
+class AIExportService:
+    """AI-powered export assistance service."""
+
+    def __init__(self):
+        """Initialize the AI Export Service."""
+        self.openai_client = None
+
+    async def _get_openai_client(self):
+        """Get OpenAI client instance."""
+        if self.openai_client is None:
+            from openai import AsyncOpenAI
+            self.openai_client = AsyncOpenAI(
+                api_key=settings.openai_api_key,
+                base_url=settings.OPENAI_BASE_URL if hasattr(settings, 'OPENAI_BASE_URL') else None
+            )
+        return self.openai_client
+
+    async def analyze_export_intent(
+        self,
+        database_name: str,
+        sql_text: str,
+        query_result: dict
+    ) -> dict:
+        """Analyze if export should be suggested based on query results.
+
+        Args:
+            database_name: Name of the database
+            sql_text: SQL query that was executed
+            query_result: Query result containing columns, rows, and row_count
+
+        Returns:
+            Dictionary with analysis results
+        """
+        client = await self._get_openai_client()
+
+        # Prepare context for AI
+        columns_info = []
+        for col in query_result['columns']:
+            columns_info.append(f"{col['name']}: {col['type']}")
+
+        rows_preview = []
+        if query_result['rows']:
+            # Show first 3 rows as preview
+            for i, row in enumerate(query_result['rows'][:3]):
+                row_values = []
+                for j, col in enumerate(query_result['columns']):
+                    value = str(row[j]) if j < len(row) else 'NULL'
+                    # Truncate long values
+                    if len(value) > 50:
+                        value = value[:47] + '...'
+                    row_values.append(f"{col['name']}={value}")
+                rows_preview.append(f"  Row {i+1}: {', '.join(row_values)}")
+
+        # Create prompt
+        prompt = f"""
+Analyze this database query and determine if an export suggestion should be made.
+
+Database: {database_name}
+SQL Query: {sql_text}
+Columns: {', '.join(columns_info)}
+Row Count: {query_result['row_count']}
+
+Preview of first rows:
+{chr(10).join(rows_preview)}
+
+Please respond with a JSON object containing:
+- shouldSuggestExport: boolean (whether to suggest export)
+- confidence: float (0.0 to 1.0, confidence in the suggestion)
+- reasoning: string (explanation for the decision)
+- clarificationNeeded: boolean (if more user input is needed)
+- clarificationQuestion: string|null (question if clarification needed)
+- suggestedFormat: "CSV"|"JSON"|"MARKDOWN" (recommended format)
+- suggestedScope: "CURRENT_PAGE"|"ALL_DATA" (recommended scope)
+
+Consider:
+- Large datasets (>100 rows) typically benefit from export
+- Complex data structures (JSON, nested) may need specific formats
+- Simple lookups (<10 rows) probably don't need export
+- User might want to export for analysis, backup, or sharing
+"""
+
+        try:
+            response = await client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are an expert database analyst. Help users determine when they should export data based on their query results."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=500
+            )
+
+            # Parse the response
+            content = response.choices[0].message.content
+            import json
+
+            # Try to parse JSON response
+            try:
+                result = json.loads(content)
+
+                # Validate and add defaults
+                result.setdefault('clarificationNeeded', False)
+                result.setdefault('clarificationQuestion', None)
+
+                # Convert string format to enum
+                format_map = {
+                    'CSV': ExportFormat.CSV,
+                    'JSON': ExportFormat.JSON,
+                    'MARKDOWN': ExportFormat.MARKDOWN
+                }
+                result['suggestedFormat'] = format_map.get(result.get('suggestedFormat'), ExportFormat.CSV)
+
+                # Convert string scope to enum
+                scope_map = {
+                    'CURRENT_PAGE': ExportScope.CURRENT_PAGE,
+                    'ALL_DATA': ExportScope.ALL_DATA
+                }
+                result['suggestedScope'] = scope_map.get(result.get('suggestedScope'), ExportScope.ALL_DATA)
+
+                return result
+
+            except json.JSONDecodeError:
+                # Fallback if JSON parsing fails
+                return {
+                    'shouldSuggestExport': query_result['row_count'] > 10,
+                    'confidence': 0.7,
+                    'reasoning': 'Unable to parse AI response, using default logic',
+                    'clarificationNeeded': False,
+                    'clarificationQuestion': None,
+                    'suggestedFormat': ExportFormat.CSV,
+                    'suggestedScope': ExportScope.ALL_DATA
+                }
+
+        except Exception as e:
+            logger.error(f"Error analyzing export intent: {e}")
+            # Fallback to simple logic
+            return {
+                'shouldSuggestExport': query_result['row_count'] > 10,
+                'confidence': 0.6,
+                'reasoning': 'Fallback: Using row count for suggestion',
+                'clarificationNeeded': False,
+                'clarificationQuestion': None,
+                'suggestedFormat': ExportFormat.CSV,
+                'suggestedScope': ExportScope.ALL_DATA
+            }
+
+    async def generate_proactive_suggestion(
+        self,
+        database_name: str,
+        sql_text: str,
+        query_result: dict,
+        intent_analysis: dict
+    ) -> dict:
+        """Generate proactive export suggestion with quick actions.
+
+        Args:
+            database_name: Name of the database
+            sql_text: SQL query that was executed
+            query_result: Query result data
+            intent_analysis: Results from analyze_export_intent
+
+        Returns:
+            Dictionary with suggestion text and quick actions
+        """
+        if not intent_analysis.get('shouldSuggestExport'):
+            return None
+
+        client = await self._get_openai_client()
+
+        # Prepare context for suggestion generation
+        row_count = query_result['row_count']
+        format_name = intent_analysis['suggestedFormat']
+        scope_name = intent_analysis['suggestedScope']
+
+        # Create prompt for suggestion generation
+        prompt = f"""
+Generate a friendly export suggestion for this query result.
+
+Database: {database_name}
+SQL Query: {sql_text}
+Row Count: {row_count}
+Suggested Format: {format_name}
+Suggested Scope: {scope_name}
+
+Confidence: {intent_analysis['confidence']}
+
+Please respond with a JSON object containing:
+- suggestionText: string (friendly message suggesting export)
+- quickActions: array of action objects, each with:
+  - type: "export"|"filter"|"clarification"|"transform"
+  - label: string (button text)
+  - action: string (action identifier)
+  - format?: string (for export actions)
+  - scope?: string (for export actions)
+  - description?: string (for non-export actions)
+- confidence: float (0.0 to 1.0)
+- explanation: string (explanation of the suggestion)
+
+The suggestion should be:
+- Context-aware (mention specific row count, data types if relevant)
+- Helpful (explain why export would be beneficial)
+- Action-oriented (clear next steps)
+"""
+
+        try:
+            response = await client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful database assistant. Generate friendly, actionable export suggestions for users."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.4,
+                max_tokens=600
+            )
+
+            content = response.choices[0].message.content
+            import json
+
+            try:
+                result = json.loads(content)
+
+                # Generate default quick actions if none provided
+                if not result.get('quickActions'):
+                    result['quickActions'] = [
+                        {
+                            'type': 'export',
+                            'label': f'导出为{format_name}',
+                            'action': 'export',
+                            'format': format_name,
+                            'scope': scope_name
+                        }
+                    ]
+
+                return result
+
+            except json.JSONDecodeError:
+                # Generate fallback suggestion
+                return {
+                    'suggestionText': f'您查询了{row_count}条数据记录，建议导出{format_name}格式以便后续分析。',
+                    'quickActions': [
+                        {
+                            'type': 'export',
+                            'label': f'导出为{format_name}',
+                            'action': 'export',
+                            'format': format_name,
+                            'scope': scope_name
+                        }
+                    ],
+                    'confidence': intent_analysis['confidence'],
+                    'explanation': '基于查询结果生成的默认建议'
+                }
+
+        except Exception as e:
+            logger.error(f"Error generating proactive suggestion: {e}")
+            # Fallback suggestion
+            return {
+                'suggestionText': f'您查询了{row_count}条数据，是否需要导出为{format_name}格式？',
+                'quickActions': [
+                    {
+                        'type': 'export',
+                        'label': f'导出为{format_name}',
+                        'action': 'export',
+                        'format': format_name,
+                        'scope': scope_name
+                    }
+                ],
+                'confidence': intent_analysis['confidence'],
+                'explanation': '使用默认导出建议'
+            }
+
+    async def track_suggestion_response(
+        self,
+        suggestion_id: str,
+        database_name: str,
+        suggestion_type: str,
+        sql_context: str,
+        row_count: int,
+        confidence: float,
+        suggested_format: ExportFormat,
+        suggested_scope: ExportScope,
+        user_response: ExportSuggestionResponse,
+        response_time_ms: int,
+        suggested_at: datetime,
+        responded_at: datetime
+    ) -> bool:
+        """Track user response to AI suggestion.
+
+        Args:
+            suggestion_id: Unique identifier for the suggestion
+            database_name: Database name
+            suggestion_type: Type of suggestion (EXPORT_INTENT, PROACTIVE_SUGGESTION)
+            sql_context: SQL query context
+            row_count: Number of rows in result
+            confidence: AI confidence level
+            suggested_format: Suggested export format
+            suggested_scope: Suggested export scope
+            user_response: How user responded
+            response_time_ms: Time from suggestion to response
+            suggested_at: When suggestion was made
+            responded_at: When user responded
+
+        Returns:
+            True if tracking was successful
+        """
+        try:
+            from app.database import get_database_session
+
+            async with get_database_session() as session:
+                # Create analytics record
+                analytics = AISuggestionAnalytics(
+                    suggestion_id=suggestion_id,
+                    database_name=database_name,
+                    suggestion_type=suggestion_type,
+                    sql_context=sql_context,
+                    row_count=row_count,
+                    confidence=confidence,
+                    suggested_format=suggested_format,
+                    suggested_scope=suggested_scope,
+                    user_response=user_response,
+                    response_time_ms=response_time_ms,
+                    suggested_at=suggested_at,
+                    responded_at=responded_at
+                )
+
+                session.add(analytics)
+                await session.commit()
+
+                logger.info(f"Tracked suggestion response: {user_response}")
+                return True
+
+        except Exception as e:
+            logger.error(f"Error tracking suggestion response: {e}")
+            return False
+
+    async def get_export_analytics(
+        self,
+        database_name: str,
+        days: int = 7
+    ) -> dict:
+        """Get export analytics data.
+
+        Args:
+            database_name: Database name to filter analytics
+            days: Number of days to look back
+
+        Returns:
+            Analytics statistics
+        """
+        try:
+            from app.database import get_database_session
+            from datetime import timedelta
+
+            start_date = datetime.now() - timedelta(days=days)
+
+            async with get_database_session() as session:
+                # Get all suggestions for the database and time period
+                from sqlalchemy import select, and_
+                from app.models.export import AISuggestionAnalytics
+
+                stmt = select(AISuggestionAnalytics).where(
+                    and_(
+                        AISuggestionAnalytics.database_name == database_name,
+                        AISuggestionAnalytics.suggested_at >= start_date
+                    )
+                )
+
+                result = await session.execute(stmt)
+                suggestions = result.scalars().all()
+
+                if not suggestions:
+                    return {
+                        'totalSuggestions': 0,
+                        'acceptanceRate': 0.0,
+                        'avgResponseTime': 0,
+                        'responsesByType': {},
+                        'responsesByFormat': {}
+                    }
+
+                # Calculate metrics
+                total = len(suggestions)
+                accepted = sum(1 for s in suggestions if s.user_response == ExportSuggestionResponse.ACCEPTED)
+                acceptance_rate = (accepted / total) * 100 if total > 0 else 0
+
+                avg_response_time = sum(s.response_time_ms for s in suggestions) / total if total > 0 else 0
+
+                # Group by type
+                responses_by_type = {}
+                for suggestion in suggestions:
+                    if suggestion.suggestion_type not in responses_by_type:
+                        responses_by_type[suggestion.suggestion_type] = {
+                            'total': 0,
+                            'accepted': 0
+                        }
+                    responses_by_type[suggestion.suggestion_type]['total'] += 1
+                    if suggestion.user_response == ExportSuggestionResponse.ACCEPTED:
+                        responses_by_type[suggestion.suggestion_type]['accepted'] += 1
+
+                # Group by format
+                responses_by_format = {}
+                for suggestion in suggestions:
+                    if suggestion.suggested_format not in responses_by_format:
+                        responses_by_format[suggestion.suggested_format] = {
+                            'total': 0,
+                            'accepted': 0
+                        }
+                    responses_by_format[suggestion.suggested_format]['total'] += 1
+                    if suggestion.user_response == ExportSuggestionResponse.ACCEPTED:
+                        responses_by_format[suggestion.suggested_format]['accepted'] += 1
+
+                return {
+                    'totalSuggestions': total,
+                    'acceptanceRate': round(acceptance_rate, 2),
+                    'avgResponseTime': int(avg_response_time),
+                    'responsesByType': responses_by_type,
+                    'responsesByFormat': responses_by_format
+                }
+
+        except Exception as e:
+            logger.error(f"Error getting export analytics: {e}")
+            return {
+                'totalSuggestions': 0,
+                'acceptanceRate': 0.0,
+                'avgResponseTime': 0,
+                'responsesByType': {},
+                'responsesByFormat': {}
+            }

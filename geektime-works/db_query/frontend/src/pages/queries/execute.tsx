@@ -11,6 +11,7 @@ import { ResultTable } from "../../components/ResultTable";
 import { ExportButton } from "../../components/query/ExportButton";
 import { ExportDialog } from "../../components/export/ExportDialog";
 import { ExportProgress } from "../../components/export/ExportProgress";
+import { AiExportAssistant } from "../../components/export/AiExportAssistant";
 import type { ExportRequest } from "../../types/export";
 
 const { Text } = Typography;
@@ -29,6 +30,9 @@ export const QueryExecute: React.FC = () => {
   const [showExportProgress, setShowExportProgress] = useState(false);
   const [exportTaskId, setExportTaskId] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+
+  // AI Export Assistant states
+  const [aiAssistantEnabled, setAiAssistantEnabled] = useState(true);
 
   useEffect(() => {
     if (databaseName) {
@@ -84,6 +88,15 @@ export const QueryExecute: React.FC = () => {
     setSql(historyItem.sqlText);
     setError(null);
     setResult(null);
+  };
+
+  // Handle export from AI assistant
+  const handleAiExport = (params: {
+    format: string;
+    scope: string;
+    sql: string;
+  }) => {
+    setShowExportDialog(true);
   };
 
   // Export handlers
@@ -207,9 +220,26 @@ export const QueryExecute: React.FC = () => {
           )}
 
           {result && (
-            <Card title="Query Results" size="small">
-              <ResultTable result={result} loading={loading} />
-            </Card>
+            <>
+              {/* AI Export Assistant */}
+              {databaseName && (
+                <AiExportAssistant
+                  databaseName={databaseName}
+                  sqlText={sql}
+                  queryResult={{
+                    columns: result.columns,
+                    rows: result.rows,
+                    rowCount: result.rowCount
+                  }}
+                  onExport={handleAiExport}
+                  enabled={aiAssistantEnabled}
+                />
+              )}
+
+              <Card title="Query Results" size="small">
+                <ResultTable result={result} loading={loading} />
+              </Card>
+            </>
           )}
         </Space>
       </Card>

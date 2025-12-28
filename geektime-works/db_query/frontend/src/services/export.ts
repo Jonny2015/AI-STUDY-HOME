@@ -133,4 +133,145 @@ export const exportService = {
     const url = this.getDownloadUrl(filename);
     window.open(url, "_blank");
   },
+
+  // AI Export Assistant API methods
+
+  /**
+   * Analyze if export should be suggested based on query results.
+   *
+   * @param databaseName - Database connection name
+   * @param sqlText - SQL query that was executed
+   * @param queryResult - Query result with columns, rows, and row count
+   * @returns Promise resolving to intent analysis results
+   */
+  async analyzeExportIntent({
+    databaseName,
+    sqlText,
+    queryResult
+  }: {
+    databaseName: string;
+    sqlText: string;
+    queryResult: {
+      columns: Array<{ name: string; type: string }>;
+      rows: any[][];
+      rowCount: number;
+    };
+  }): Promise<{
+    shouldSuggestExport: boolean;
+    confidence: number;
+    reasoning: string;
+    clarificationNeeded: boolean;
+    clarificationQuestion: string | null;
+    suggestedFormat: string;
+    suggestedScope: string;
+  }> {
+    const response = await apiClient.post('/api/v1/export/analyze-intent', {
+      databaseName,
+      sqlText,
+      queryResult
+    });
+    return response.data;
+  },
+
+  /**
+   * Get proactive export suggestion with quick actions.
+   *
+   * @param databaseName - Database connection name
+   * @param sqlText - SQL query that was executed
+   * @param queryResult - Query result data
+   * @param intentAnalysis - Results from analyzeExportIntent
+   * @returns Promise resolving to suggestion text and quick actions
+   */
+  async getProactiveSuggestion({
+    databaseName,
+    sqlText,
+    queryResult,
+    intentAnalysis
+  }: {
+    databaseName: string;
+    sqlText: string;
+    queryResult: {
+      columns: Array<{ name: string; type: string }>;
+      rows: any[][];
+      rowCount: number;
+    };
+    intentAnalysis: {
+      shouldSuggestExport: boolean;
+      confidence: number;
+      reasoning: string;
+      clarificationNeeded: boolean;
+      clarificationQuestion: string | null;
+      suggestedFormat: string;
+      suggestedScope: string;
+    };
+  }): Promise<{
+    suggestionText: string;
+    quickActions: Array<{
+      type: 'export' | 'filter' | 'clarification' | 'transform';
+      label: string;
+      action: string;
+      format?: string;
+      scope?: string;
+      description?: string;
+    }>;
+    confidence: number;
+    explanation: string;
+  }> {
+    const response = await apiClient.post('/api/v1/export/proactive-suggestion', {
+      databaseName,
+      sqlText,
+      queryResult,
+      intentAnalysis
+    });
+    return response.data;
+  },
+
+  /**
+   * Track user response to AI export suggestion.
+   *
+   * @param params - Response tracking parameters
+   * @returns Promise resolving when response is tracked
+   */
+  async trackSuggestionResponse(params: {
+    suggestionId?: string;
+    databaseName: string;
+    suggestionType: string;
+    sqlContext: string;
+    rowCount: number;
+    confidence: number;
+    suggestedFormat: string;
+    suggestedScope: string;
+    userResponse: 'ACCEPTED' | 'REJECTED' | 'IGNORED' | 'MODIFIED';
+    responseTimeMs?: number;
+    suggestedAt?: string;
+    respondedAt?: string;
+  }): Promise<void> {
+    await apiClient.post('/api/v1/export/track-response', params);
+  },
+
+  /**
+   * Get export analytics data for AI suggestions.
+   *
+   * @param databaseName - Database name to filter analytics
+   * @param days - Number of days to look back (default: 7)
+   * @returns Promise resolving to analytics statistics
+   */
+  async getExportAnalytics(
+    databaseName: string,
+    days: number = 7
+  ): Promise<{
+    totalSuggestions: number;
+    acceptanceRate: number;
+    avgResponseTime: number;
+    responsesByType: Record<string, { total: number; accepted: number }>;
+    responsesByFormat: Record<string, { total: number; accepted: number }>;
+  }> {
+    const response = await apiClient.get('/api/v1/export/analytics', {
+      params: {
+        databaseName,
+        days
+      }
+    });
+    return response.data;
+  },
 };

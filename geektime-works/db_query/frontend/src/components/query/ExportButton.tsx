@@ -1,7 +1,7 @@
 /** Export button component for triggering data exports. */
 
 import React, { useState } from "react";
-import { Button, Dropdown, message, Modal } from "antd";
+import { Button, Dropdown, Modal, App } from "antd";
 import { DownloadOutlined, FileTextOutlined, FileOutlined, FileMarkdownOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import type { ExportFormat, ExportOptions } from "../../types/export";
@@ -28,6 +28,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
   disabled = false,
   className,
 }) => {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
