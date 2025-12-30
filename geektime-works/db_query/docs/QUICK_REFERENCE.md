@@ -1,74 +1,74 @@
-# Quick Reference: Database Adapter Architecture
+# 快速参考：数据库适配器架构
 
-## Adding a New Database (5 Steps)
+## 添加新数据库支持（5步）
 
-### 1. Create Adapter
+### 第1步：创建适配器
 ```python
 # app/adapters/yourdb.py
 from app.adapters.base import DatabaseAdapter, ConnectionConfig, QueryResult, MetadataResult
 
 class YourDBAdapter(DatabaseAdapter):
     async def test_connection(self):
-        # Test connection, return (True, None) or (False, error_msg)
+        # 测试连接，返回 (True, None) 或 (False, error_msg)
         pass
 
     async def get_connection_pool(self):
-        # Create and cache connection pool
+        # 创建并缓存连接池
         if self._pool is None:
             self._pool = await your_driver.create_pool(self.config.url)
         return self._pool
 
     async def close_connection_pool(self):
-        # Close pool
+        # 关闭连接池
         if self._pool:
             await self._pool.close()
             self._pool = None
 
     async def extract_metadata(self):
-        # Query database catalog, return MetadataResult
+        # 查询数据库目录，返回 MetadataResult
         return MetadataResult(tables=[], views=[])
 
     async def execute_query(self, sql: str):
-        # Execute SQL, return QueryResult
+        # 执行 SQL，返回 QueryResult
         return QueryResult(columns=[], rows=[], row_count=0)
 
     def get_dialect_name(self):
-        return "yourdb"  # For SQL validation
+        return "yourdb"  # 用于 SQL 验证
 
     def get_identifier_quote_char(self):
-        return '"'  # or '`' or '['
+        return '"'  # 或 '`' 或 '['
 ```
 
-### 2. Add Database Type
+### 第2步：添加数据库类型
 ```python
 # app/models/database.py
 class DatabaseType(str, Enum):
     POSTGRESQL = "postgresql"
     MYSQL = "mysql"
-    YOURDB = "yourdb"  # ADD THIS
+    YOURDB = "yourdb"  # 添加这一行
 ```
 
-### 3. Register Adapter
+### 第3步：注册适配器
 ```python
 # app/adapters/registry.py
 from app.adapters.yourdb import YourDBAdapter
 
 class DatabaseAdapterRegistry:
     def __init__(self):
-        # ... existing code ...
-        self.register(DatabaseType.YOURDB, YourDBAdapter)  # ADD THIS
+        # ... 现有代码 ...
+        self.register(DatabaseType.YOURDB, YourDBAdapter)  # 添加这一行
 ```
 
-### 4. Update URL Parser (Optional)
+### 第4步：更新 URL 解析器（可选）
 ```python
 # app/utils/db_parser.py
 def detect_database_type(url: str) -> DatabaseType:
     if url.startswith("yourdb://"):
         return DatabaseType.YOURDB
-    # ... other databases ...
+    # ... 其他数据库 ...
 ```
 
-### 5. Test
+### 第5步：测试
 ```python
 # tests/adapters/test_yourdb.py
 @pytest.mark.asyncio
@@ -80,13 +80,13 @@ async def test_yourdb_adapter():
     assert success or error is not None
 ```
 
-## Common Patterns
+## 常用模式
 
-### Connection Pool Management
+### 连接池管理
 ```python
 async def get_connection_pool(self):
     if self._pool is None:
-        # CREATE ONCE, reuse on subsequent calls
+        # 创建一次，后续复用
         self._pool = await driver.create_pool(
             self.config.url,
             min_size=self.config.min_pool_size,
@@ -95,7 +95,7 @@ async def get_connection_pool(self):
     return self._pool
 ```
 
-### URL Parsing
+### URL 解析
 ```python
 from urllib.parse import urlparse
 
@@ -110,15 +110,15 @@ def _parse_url(self, url: str):
     }
 ```
 
-### Metadata Extraction
+### 元数据提取
 ```python
 async def extract_metadata(self):
     pool = await self.get_connection_pool()
 
     async with pool.acquire() as conn:
-        # Get tables
+        # 获取表
         tables = await self._get_tables(conn)
-        # Get views
+        # 获取视图
         views = await self._get_views(conn)
 
     return MetadataResult(tables=tables, views=views)
@@ -137,7 +137,7 @@ async def _get_tables(self, conn):
     return tables
 ```
 
-### Query Execution
+### 查询执行
 ```python
 async def execute_query(self, sql: str):
     pool = await self.get_connection_pool()
@@ -145,7 +145,7 @@ async def execute_query(self, sql: str):
     async with pool.acquire() as conn:
         rows = await conn.fetch(sql)
 
-        # Extract columns from first row
+        # 从第一行提取列信息
         columns = []
         if rows:
             for key, value in rows[0].items():
@@ -154,7 +154,7 @@ async def execute_query(self, sql: str):
                     "dataType": self._infer_type(value)
                 })
 
-        # Convert rows to list of dicts
+        # 转换行为字典列表
         result_rows = [dict(row) for row in rows]
 
         return QueryResult(
@@ -164,7 +164,7 @@ async def execute_query(self, sql: str):
         )
 ```
 
-### Type Inference
+### 类型推断
 ```python
 @staticmethod
 def _infer_type(value):
@@ -184,14 +184,14 @@ def _infer_type(value):
         return str(type(value).__name__)
 ```
 
-## Data Structures
+## 数据结构
 
 ### ConnectionConfig
 ```python
 @dataclass
 class ConnectionConfig:
-    url: str              # Database connection URL
-    name: str             # Connection identifier
+    url: str              # 数据库连接 URL
+    name: str             # 连接标识符
     min_pool_size: int = 1
     max_pool_size: int = 5
     command_timeout: int = 60
@@ -210,10 +210,10 @@ class QueryResult:
 ```python
 @dataclass
 class MetadataResult:
-    tables: List[Dict[str, Any]]  # Table metadata
-    views: List[Dict[str, Any]]   # View metadata
+    tables: List[Dict[str, Any]]  # 表元数据
+    views: List[Dict[str, Any]]   # 视图元数据
 
-# Table structure:
+# 表结构:
 {
     "name": "users",
     "type": "table",
@@ -232,9 +232,9 @@ class MetadataResult:
 }
 ```
 
-## Using the Service
+## 使用服务
 
-### Execute Query
+### 执行查询
 ```python
 from app.services.database_service import database_service
 from app.models.database import DatabaseType
@@ -247,12 +247,12 @@ result, time_ms = await database_service.execute_query(
     limit=1000
 )
 
-print(f"Returned {result.row_count} rows in {time_ms}ms")
+print(f"返回 {result.row_count} 行，耗时 {time_ms}ms")
 for row in result.rows:
     print(row)
 ```
 
-### Extract Metadata
+### 提取元数据
 ```python
 metadata = await database_service.extract_metadata(
     db_type=DatabaseType.MYSQL,
@@ -260,12 +260,12 @@ metadata = await database_service.extract_metadata(
     url="mysql://localhost/mydb"
 )
 
-print(f"Tables: {len(metadata.tables)}")
+print(f"表数量: {len(metadata.tables)}")
 for table in metadata.tables:
-    print(f"  {table['name']}: {len(table['columns'])} columns")
+    print(f"  {table['name']}: {len(table['columns'])} 列")
 ```
 
-### Test Connection
+### 测试连接
 ```python
 success, error = await database_service.test_connection(
     db_type=DatabaseType.POSTGRESQL,
@@ -273,12 +273,12 @@ success, error = await database_service.test_connection(
 )
 
 if success:
-    print("Connection successful!")
+    print("连接成功！")
 else:
-    print(f"Connection failed: {error}")
+    print(f"连接失败: {error}")
 ```
 
-## Database-Specific Examples
+## 数据库特定示例
 
 ### PostgreSQL
 ```python
@@ -292,7 +292,7 @@ async def get_connection_pool(self):
 async def execute_query(self, sql):
     pool = await self.get_connection_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(sql)  # Returns List[Record]
+        rows = await conn.fetch(sql)  # 返回 List[Record]
         return QueryResult(...)
 ```
 
@@ -311,7 +311,7 @@ async def execute_query(self, sql):
     async with pool.acquire() as conn:
         async with conn.cursor(aiomysql.DictCursor) as cursor:
             await cursor.execute(sql)
-            rows = await cursor.fetchall()  # Returns List[Dict]
+            rows = await cursor.fetchall()  # 返回 List[Dict]
             return QueryResult(...)
 ```
 
@@ -320,7 +320,7 @@ async def execute_query(self, sql):
 import aiosqlite
 
 async def get_connection_pool(self):
-    # SQLite doesn't have pools, create connection
+    # SQLite 没有连接池，创建单个连接
     if self._pool is None:
         self._pool = await aiosqlite.connect(self.config.url)
     return self._pool
@@ -328,14 +328,14 @@ async def get_connection_pool(self):
 async def execute_query(self, sql):
     conn = await self.get_connection_pool()
     cursor = await conn.execute(sql)
-    rows = await cursor.fetchall()  # Returns List[Tuple]
-    # Convert to list of dicts...
+    rows = await cursor.fetchall()  # 返回 List[Tuple]
+    # 转换为字典列表...
     return QueryResult(...)
 ```
 
-## Debugging
+## 调试
 
-### Enable Logging
+### 启用日志
 ```python
 import logging
 
@@ -343,7 +343,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('app.adapters')
 ```
 
-### Check Registered Adapters
+### 检查已注册的适配器
 ```python
 from app.adapters.registry import adapter_registry
 
@@ -351,7 +351,7 @@ print(adapter_registry.get_supported_types())
 # [DatabaseType.POSTGRESQL, DatabaseType.MYSQL, ...]
 ```
 
-### Test Adapter Directly
+### 直接测试适配器
 ```python
 from app.adapters.postgresql import PostgreSQLAdapter
 from app.adapters.base import ConnectionConfig
@@ -359,43 +359,43 @@ from app.adapters.base import ConnectionConfig
 config = ConnectionConfig(url="postgresql://localhost/test", name="test")
 adapter = PostgreSQLAdapter(config)
 
-# Test connection
+# 测试连接
 success, error = await adapter.test_connection()
-print(f"Connection: {success}, Error: {error}")
+print(f"连接: {success}, 错误: {error}")
 
-# Test query
+# 测试查询
 result = await adapter.execute_query("SELECT 1 as num")
-print(f"Result: {result.rows}")
+print(f"结果: {result.rows}")
 ```
 
-## Common Issues
+## 常见问题
 
-### Issue: "Unsupported database type"
-**Cause**: Adapter not registered
-**Fix**: Add to `DatabaseAdapterRegistry.__init__()`
+### 问题："不支持的数据库类型"
+**原因**: 适配器未注册
+**解决方法**: 添加到 `DatabaseAdapterRegistry.__init__()`
 ```python
 self.register(DatabaseType.YOURDB, YourDBAdapter)
 ```
 
-### Issue: Pool already closed
-**Cause**: Connection pool closed prematurely
-**Fix**: Ensure pool lifecycle managed by registry
+### 问题："连接池已关闭"
+**原因**: 连接池过早关闭
+**解决方法**: 确保连接池生命周期由注册表管理
 ```python
-# Don't manually close pools, let registry handle it
+# 不要手动关闭连接池，让注册表处理
 await adapter_registry.close_adapter(db_type, name)
 ```
 
-### Issue: Type inference returns "unknown"
-**Cause**: Value is None or unhandled type
-**Fix**: Add type mapping in `_infer_type()`
+### 问题："类型推断返回 unknown"
+**原因**: 值为 None 或未处理的类型
+**解决方法**: 在 `_infer_type()` 中添加类型映射
 ```python
 elif isinstance(value, Decimal):
     return "decimal"
 ```
 
-### Issue: Metadata extraction fails
-**Cause**: Database catalog queries incorrect
-**Fix**: Check your database's information schema structure
+### 问题："元数据提取失败"
+**原因**: 数据库目录查询不正确
+**解决方法**: 检查数据库的 information schema 结构
 ```python
 # PostgreSQL: information_schema.tables
 # MySQL: INFORMATION_SCHEMA.TABLES
@@ -403,27 +403,27 @@ elif isinstance(value, Decimal):
 # SQLite: sqlite_master
 ```
 
-## Checklist for New Adapters
+## 新适配器检查清单
 
-- [ ] Implement all 7 abstract methods
-- [ ] Handle connection errors gracefully
-- [ ] Manage connection pool lifecycle
-- [ ] Extract metadata (tables, views, columns)
-- [ ] Execute queries and return results
-- [ ] Return correct SQL dialect name
-- [ ] Return correct identifier quote char
-- [ ] Add unit tests (90%+ coverage)
-- [ ] Add integration tests
-- [ ] Pass contract tests
-- [ ] Add docstrings
-- [ ] Register in registry
-- [ ] Update DatabaseType enum
-- [ ] Update URL parser (if needed)
+- [ ] 实现所有 7 个抽象方法
+- [ ] 优雅处理连接错误
+- [ ] 管理连接池生命周期
+- [ ] 提取元数据（表、视图、列）
+- [ ] 执行查询并返回结果
+- [ ] 返回正确的 SQL 方言名称
+- [ ] 返回正确的标识符引号字符
+- [ ] 添加单元测试（90%+ 覆盖率）
+- [ ] 添加集成测试
+- [ ] 通过契约测试
+- [ ] 添加文档字符串
+- [ ] 在注册表中注册
+- [ ] 更新 DatabaseType 枚举
+- [ ] 更新 URL 解析器（如需要）
 
-## Resources
+## 相关资源
 
-- **Full Architecture**: `ARCHITECTURE_REDESIGN.md`
-- **Implementation Guide**: `IMPLEMENTATION_GUIDE.md`
-- **Adapter Guide**: `app/adapters/README.md`
-- **Summary**: `ARCHITECTURE_SUMMARY.md`
-- **Examples**: `app/adapters/postgresql.py`, `app/adapters/mysql.py`
+- **完整架构**: `ARCHITECTURE_REDESIGN.md`
+- **实现指南**: `IMPLEMENTATION_GUIDE.md`
+- **适配器指南**: `app/adapters/README.md`
+- **架构总结**: `ARCHITECTURE_SUMMARY.md`
+- **示例**: `app/adapters/postgresql.py`, `app/adapters/mysql.py`

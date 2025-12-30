@@ -1,292 +1,292 @@
-# Architecture Redesign Documentation Index
+# 架构重设计文档索引
 
-## Overview
+## 概述
 
-This directory contains comprehensive documentation for the database query backend architecture redesign. The redesign follows SOLID principles and makes the system extensible for adding new database types without modifying existing code.
+此目录包含数据库查询后端架构重设计的全面文档。重设计遵循 SOLID 原则，使系统可扩展以在不修改现有代码的情况下添加新的数据库类型。
 
-## Documentation Files
+## 文档文件
 
-### Executive Summary
-**File**: `ARCHITECTURE_SUMMARY.md` (11 KB)
-**Purpose**: High-level overview of the redesign
-**Audience**: Management, architects, senior developers
-**Contains**:
-- Current problems with code examples
-- Proposed solution overview
-- Benefits and metrics
-- Development effort comparison
-- Key design principles
+### 执行总结
+**文件**：`ARCHITECTURE_SUMMARY.md` (11 KB)
+**目的**：重设计的高层概述
+**受众**：管理层、架构师、高级开发者
+**包含内容**：
+- 带代码示例的当前问题
+- 提议的解决方案概述
+- 优势和指标
+- 开发工作量对比
+- 核心设计原则
 
-**Start here if**: You need a quick understanding of why and what
-
----
-
-### Detailed Architecture Design
-**File**: `ARCHITECTURE_REDESIGN.md` (45 KB)
-**Purpose**: Complete technical specification
-**Audience**: Developers, architects
-**Contains**:
-- Current architecture analysis with code examples
-- Identified problems and their impacts
-- Proposed architecture with full class implementations
-- Concrete adapter examples (PostgreSQL, MySQL, Oracle)
-- Complete registry and service layer code
-- How to add new databases (step-by-step)
-- Migration path with phases
-- Testing strategy
-- Performance considerations
-
-**Start here if**: You need complete technical details
+**从这里开始，如果**：你需要快速了解为什么和做什么
 
 ---
 
-### Implementation Guide
-**File**: `IMPLEMENTATION_GUIDE.md` (33 KB)
-**Purpose**: Step-by-step implementation instructions
-**Audience**: Development team
-**Contains**:
-- 5-week phased implementation plan
-- Code for each component with full implementations
-- Testing strategy for each phase
-- Validation steps
-- Rollback strategy
-- Success criteria
-- Monitoring guidelines
+### 详细架构设计
+**文件**：`ARCHITECTURE_REDESIGN.md` (45 KB)
+**目的**：完整的技术规范
+**受众**：开发者、架构师
+**包含内容**：
+- 带代码示例的当前架构分析
+- 已识别的问题及其影响
+- 带完整类实现的提议架构
+- 具体适配器示例（PostgreSQL、MySQL、Oracle）
+- 完整的注册表和服务层代码
+- 如何添加新数据库（分步说明）
+- 带阶段的迁移路径
+- 测试策略
+- 性能考虑
 
-**Start here if**: You're implementing the redesign
-
----
-
-### Quick Reference Card
-**File**: `QUICK_REFERENCE.md` (11 KB)
-**Purpose**: Fast lookup for common tasks
-**Audience**: Developers working with adapters
-**Contains**:
-- 5-step guide to adding a database
-- Common patterns (connection, metadata, queries)
-- Code snippets for frequent operations
-- Database-specific examples
-- Debugging tips
-- Checklist
-
-**Start here if**: You need quick answers while coding
+**从这里开始，如果**：你需要完整的技术细节
 
 ---
 
-### Class Diagrams and Relationships
-**File**: `CLASS_DIAGRAM.md` (25 KB)
-**Purpose**: Visual architecture documentation
-**Audience**: Architects, developers
-**Contains**:
-- UML class diagrams
-- Sequence diagrams (query execution, metadata extraction)
-- Dependency graph
-- Object lifecycle diagrams
-- Design patterns used
-- SOLID principles mapping
+### 实现指南
+**文件**：`IMPLEMENTATION_GUIDE.md` (33 KB)
+**目的**：分步实现说明
+**受众**：开发团队
+**包含内容**：
+- 5 周分阶段实现计划
+- 每个组件的代码和完整实现
+- 每个阶段的测试策略
+- 验证步骤
+- 回滚策略
+- 成功标准
+- 监控指南
 
-**Start here if**: You need to understand relationships and flows
-
----
-
-### Adapter Development Guide
-**File**: `app/adapters/README.md` (16 KB)
-**Purpose**: Comprehensive guide for creating new adapters
-**Audience**: Developers adding database support
-**Contains**:
-- Quick start guide
-- Detailed implementation instructions
-- Connection management patterns
-- Metadata extraction strategies
-- Query execution patterns
-- Examples from PostgreSQL and MySQL
-- Testing guidelines
-- Common patterns and FAQ
-
-**Start here if**: You're creating a new database adapter
+**从这里开始，如果**：你正在实现重设计
 
 ---
 
-## Document Relationships
+### 快速参考卡片
+**文件**：`QUICK_REFERENCE.md` (11 KB)
+**目的**：常见任务的快速查找
+**受众**：使用适配器的开发者
+**包含内容**：
+- 添加数据库的 5 步指南
+- 常见模式（连接、元数据、查询）
+- 频繁操作的代码片段
+- 数据库特定示例
+- 调试技巧
+- 检查清单
+
+**从这里开始，如果**：你在编码时需要快速答案
+
+---
+
+### 类图和关系
+**文件**：`CLASS_DIAGRAM.md` (25 KB)
+**目的**：可视化架构文档
+**受众**：架构师、开发者
+**包含内容**：
+- UML 类图
+- 序列图（查询执行、元数据提取）
+- 依赖图
+- 对象生命周期图
+- 使用的设计模式
+- SOLID 原则映射
+
+**从这里开始，如果**：你需要理解关系和流程
+
+---
+
+### 适配器开发指南
+**文件**：`app/adapters/README.md` (16 KB)
+**目的**：创建新适配器的全面指南
+**受众**：添加数据库支持的开发者
+**包含内容**：
+- 快速入门指南
+- 详细实现说明
+- 连接管理模式
+- 元数据提取策略
+- 查询执行模式
+- PostgreSQL 和 MySQL 的示例
+- 测试指南
+- 常见模式和 FAQ
+
+**从这里开始，如果**：你正在创建新的数据库适配器
+
+---
+
+## 文档关系
 
 ```
 ARCHITECTURE_SUMMARY.md
     │
-    ├─→ ARCHITECTURE_REDESIGN.md (detailed version)
+    ├─→ ARCHITECTURE_REDESIGN.md (详细版本)
     │       │
-    │       ├─→ CLASS_DIAGRAM.md (visual representation)
+    │       ├─→ CLASS_DIAGRAM.md (可视化表示)
     │       │
-    │       └─→ IMPLEMENTATION_GUIDE.md (how to build it)
+    │       └─→ IMPLEMENTATION_GUIDE.md (如何构建)
     │               │
-    │               └─→ app/adapters/README.md (how to extend it)
+    │               └─→ app/adapters/README.md (如何扩展)
     │
-    └─→ QUICK_REFERENCE.md (fast lookup)
+    └─→ QUICK_REFERENCE.md (快速查找)
 ```
 
-## Reading Paths
+## 阅读路径
 
-### For Managers/Stakeholders
-1. `ARCHITECTURE_SUMMARY.md` - Understand the business case
-2. Benefits section in `ARCHITECTURE_REDESIGN.md` - See ROI
-3. Done!
+### 对于管理者/利益相关者
+1. `ARCHITECTURE_SUMMARY.md` - 理解业务案例
+2. `ARCHITECTURE_REDESIGN.md` 中的优势部分 - 查看投资回报率
+3. 完成！
 
-### For Architects
-1. `ARCHITECTURE_SUMMARY.md` - Overview
-2. `ARCHITECTURE_REDESIGN.md` - Full design
-3. `CLASS_DIAGRAM.md` - Relationships and patterns
-4. Review proposed code in `IMPLEMENTATION_GUIDE.md`
+### 对于架构师
+1. `ARCHITECTURE_SUMMARY.md` - 概述
+2. `ARCHITECTURE_REDESIGN.md` - 完整设计
+3. `CLASS_DIAGRAM.md` - 关系和模式
+4. 审查 `IMPLEMENTATION_GUIDE.md` 中的提议代码
 
-### For Developers (Implementing Redesign)
-1. `ARCHITECTURE_SUMMARY.md` - Context
-2. `IMPLEMENTATION_GUIDE.md` - Follow phase-by-phase
-3. `QUICK_REFERENCE.md` - Bookmark for quick lookup
-4. `app/adapters/README.md` - When creating adapters
+### 对于开发者（实现重设计）
+1. `ARCHITECTURE_SUMMARY.md` - 背景
+2. `IMPLEMENTATION_GUIDE.md` - 跟随分阶段实施
+3. `QUICK_REFERENCE.md` - 收藏以备快速查找
+4. `app/adapters/README.md` - 创建适配器时参考
 
-### For Developers (Adding New Database)
-1. `QUICK_REFERENCE.md` - 5-step process
-2. `app/adapters/README.md` - Detailed guide
-3. Look at existing adapters in codebase
-4. `CLASS_DIAGRAM.md` - If unclear about structure
+### 对于开发者（添加新数据库）
+1. `QUICK_REFERENCE.md` - 5 步流程
+2. `app/adapters/README.md` - 详细指南
+3. 查看代码库中的现有适配器
+4. `CLASS_DIAGRAM.md` - 如果结构不清晰
 
-### For Code Reviewers
-1. `ARCHITECTURE_REDESIGN.md` - Understand the design
-2. `CLASS_DIAGRAM.md` - Verify relationships
-3. `QUICK_REFERENCE.md` - Checklist at the end
+### 对于代码审查者
+1. `ARCHITECTURE_REDESIGN.md` - 理解设计
+2. `CLASS_DIAGRAM.md` - 验证关系
+3. `QUICK_REFERENCE.md` - 末尾的检查清单
 
-## Key Concepts
+## 核心概念
 
-### The Problem
-Current architecture violates Open-Closed Principle. Adding a new database requires modifying 6+ existing files, risking breaking changes.
+### 问题
+当前架构违反开闭原则。添加新数据库需要修改 6+ 个现有文件，存在破坏性更改的风险。
 
-### The Solution
-Use Abstract Base Class + Factory + Registry pattern:
-- **DatabaseAdapter**: Abstract base class defining contract
-- **DatabaseAdapterRegistry**: Factory that creates and manages adapters
-- **DatabaseService**: Facade coordinating operations
-- **Concrete Adapters**: PostgreSQL, MySQL, Oracle, etc.
+### 解决方案
+使用抽象基类 + 工厂 + 注册表模式：
+- **DatabaseAdapter**：定义契约的抽象基类
+- **DatabaseAdapterRegistry**：创建和管理适配器的工厂
+- **DatabaseService**：协调操作的外观
+- **具体适配器**：PostgreSQL、MySQL、Oracle 等
 
-### Adding a New Database
-1. Create adapter class implementing `DatabaseAdapter` (1 file)
-2. Register it: `adapter_registry.register(type, adapter)` (1 line)
-3. Done! No existing code modified.
+### 添加新数据库
+1. 创建实现 `DatabaseAdapter` 的适配器类（1 个文件）
+2. 注册它：`adapter_registry.register(type, adapter)`（1 行）
+3. 完成！无需修改现有代码。
 
-## Code Statistics
+## 代码统计
 
-| Metric | Before | After | Change |
+| 指标 | 之前 | 之后 | 变化 |
 |--------|--------|-------|--------|
-| Total Lines | ~1200 | ~1000 | -17% |
-| Duplication | 40% | <5% | -35% |
-| Files to modify (new DB) | 6 | 0 | -100% |
-| Development time (new DB) | 2 days | 1 day | -50% |
+| 总行数 | ~1200 | ~1000 | -17% |
+| 重复度 | 40% | <5% | -35% |
+| 需要修改的文件（新数据库） | 6 | 0 | -100% |
+| 开发时间（新数据库） | 2 天 | 1 天 | -50% |
 
-## Implementation Timeline
+## 实现时间表
 
-- **Week 1**: Adapter infrastructure (base, PostgreSQL, MySQL, registry)
-- **Week 2**: Service layer (DatabaseService)
-- **Week 3**: API updates (use new service)
-- **Week 4**: Testing (unit, integration, contract)
-- **Week 5**: Cleanup and documentation
+- **第 1 周**：适配器基础设施（基础、PostgreSQL、MySQL、注册表）
+- **第 2 周**：服务层（DatabaseService）
+- **第 3 周**：API 更新（使用新服务）
+- **第 4 周**：测试（单元、集成、契约）
+- **第 5 周**：清理和文档
 
-**Total**: 5 weeks for complete migration
+**总计**：5 周完成完整迁移
 
-## Quick Links
+## 快速链接
 
-### Common Tasks
-- **Add new database**: `app/adapters/README.md` → Quick Start
-- **Understand current problems**: `ARCHITECTURE_REDESIGN.md` → Section 2
-- **See code examples**: `ARCHITECTURE_REDESIGN.md` → Section 3.2
-- **Implementation steps**: `IMPLEMENTATION_GUIDE.md` → Phase 1-5
-- **Visual diagrams**: `CLASS_DIAGRAM.md`
-- **Fast reference**: `QUICK_REFERENCE.md`
+### 常见任务
+- **添加新数据库**：`app/adapters/README.md` → 快速入门
+- **理解当前问题**：`ARCHITECTURE_REDESIGN.md` → 第 2 节
+- **查看代码示例**：`ARCHITECTURE_REDESIGN.md` → 第 3.2 节
+- **实现步骤**：`IMPLEMENTATION_GUIDE.md` → 阶段 1-5
+- **可视化图表**：`CLASS_DIAGRAM.md`
+- **快速参考**：`QUICK_REFERENCE.md`
 
-### Code Examples
-- **PostgreSQL adapter**: `ARCHITECTURE_REDESIGN.md` lines 294-402
-- **MySQL adapter**: `ARCHITECTURE_REDESIGN.md` lines 404-507
-- **Registry**: `ARCHITECTURE_REDESIGN.md` lines 509-606
-- **Service**: `ARCHITECTURE_REDESIGN.md` lines 608-735
+### 代码示例
+- **PostgreSQL 适配器**：`ARCHITECTURE_REDESIGN.md` 第 294-402 行
+- **MySQL 适配器**：`ARCHITECTURE_REDESIGN.md` 第 404-507 行
+- **注册表**：`ARCHITECTURE_REDESIGN.md` 第 509-606 行
+- **服务**：`ARCHITECTURE_REDESIGN.md` 第 608-735 行
 
-## File Sizes
+## 文件大小
 
-| File | Size | Lines | Read Time |
+| 文件 | 大小 | 行数 | 阅读时间 |
 |------|------|-------|-----------|
-| ARCHITECTURE_SUMMARY.md | 11 KB | 400 | 5 min |
-| ARCHITECTURE_REDESIGN.md | 45 KB | 1,600 | 25 min |
-| IMPLEMENTATION_GUIDE.md | 33 KB | 1,200 | 20 min |
-| QUICK_REFERENCE.md | 11 KB | 400 | 5 min |
-| CLASS_DIAGRAM.md | 25 KB | 900 | 15 min |
-| app/adapters/README.md | 16 KB | 600 | 10 min |
-| **Total** | **141 KB** | **5,100** | **80 min** |
+| ARCHITECTURE_SUMMARY.md | 11 KB | 400 | 5 分钟 |
+| ARCHITECTURE_REDESIGN.md | 45 KB | 1,600 | 25 分钟 |
+| IMPLEMENTATION_GUIDE.md | 33 KB | 1,200 | 20 分钟 |
+| QUICK_REFERENCE.md | 11 KB | 400 | 5 分钟 |
+| CLASS_DIAGRAM.md | 25 KB | 900 | 15 分钟 |
+| app/adapters/README.md | 16 KB | 600 | 10 分钟 |
+| **总计** | **141 KB** | **5,100** | **80 分钟** |
 
-## Maintenance
+## 维护
 
-### Keeping Documentation Updated
+### 保持文档更新
 
-When making changes to the architecture:
+在对架构进行更改时：
 
-1. **Code changes**: Update `IMPLEMENTATION_GUIDE.md` with new steps
-2. **New patterns**: Add to `QUICK_REFERENCE.md`
-3. **New relationships**: Update `CLASS_DIAGRAM.md`
-4. **Design changes**: Update `ARCHITECTURE_REDESIGN.md`
-5. **New adapters**: Add examples to `app/adapters/README.md`
+1. **代码更改**：使用新步骤更新 `IMPLEMENTATION_GUIDE.md`
+2. **新模式**：添加到 `QUICK_REFERENCE.md`
+3. **新关系**：更新 `CLASS_DIAGRAM.md`
+4. **设计更改**：更新 `ARCHITECTURE_REDESIGN.md`
+5. **新适配器**：添加示例到 `app/adapters/README.md`
 
-### Version History
+### 版本历史
 
-- **v1.0** (2024-11-16): Initial architecture redesign proposal
-  - Complete analysis of current system
-  - Proposed new architecture with full implementation
-  - 5-week migration plan
-  - Comprehensive documentation
+- **v1.0** (2024-11-16)：初始架构重设计提案
+  - 当前系统的完整分析
+  - 带完整实现的新架构提案
+  - 5 周迁移计划
+  - 全面文档
 
 ## FAQ
 
-**Q: Which document should I read first?**
-A: Depends on your role:
-- Manager: `ARCHITECTURE_SUMMARY.md`
-- Developer (implementing): `IMPLEMENTATION_GUIDE.md`
-- Developer (adding DB): `QUICK_REFERENCE.md`
-- Architect: `ARCHITECTURE_REDESIGN.md`
+**问：我应该先读哪个文档？**
+答：取决于你的角色：
+- 管理者：`ARCHITECTURE_SUMMARY.md`
+- 开发者（实现）：`IMPLEMENTATION_GUIDE.md`
+- 开发者（添加数据库）：`QUICK_REFERENCE.md`
+- 架构师：`ARCHITECTURE_REDESIGN.md`
 
-**Q: Do I need to read all documents?**
-A: No. Each document is self-contained. Use the reading paths above.
+**问：我需要阅读所有文档吗？**
+答：不需要。每个文档都是独立的。使用上面的阅读路径。
 
-**Q: Where is the actual code?**
-A: Full code examples are in:
-- `ARCHITECTURE_REDESIGN.md` (complete implementations)
-- `IMPLEMENTATION_GUIDE.md` (implementation steps)
-- Actual source code will be in `app/adapters/` after implementation
+**问：实际代码在哪里？**
+答：完整代码示例位于：
+- `ARCHITECTURE_REDESIGN.md`（完整实现）
+- `IMPLEMENTATION_GUIDE.md`（实现步骤）
+- 实现后实际源代码将在 `app/adapters/` 中
 
-**Q: How do I add a new database?**
-A: See `QUICK_REFERENCE.md` → "Adding a New Database (5 Steps)"
+**问：如何添加新数据库？**
+答：参见 `QUICK_REFERENCE.md` → "添加新数据库（5 步）"
 
-**Q: What if I find issues during implementation?**
-A: Follow the rollback strategy in `IMPLEMENTATION_GUIDE.md` → Phase-specific rollback instructions
+**问：如果在实现过程中发现问题怎么办？**
+答：遵循 `IMPLEMENTATION_GUIDE.md` 中的回滚策略 → 特定阶段的回滚说明
 
-**Q: Can I implement this incrementally?**
-A: Yes! The `IMPLEMENTATION_GUIDE.md` describes a 5-week phased approach where old code continues working until Phase 3.
+**问：我可以增量实现吗？**
+答：可以！`IMPLEMENTATION_GUIDE.md` 描述了 5 周分阶段方法，旧代码在第 3 阶段之前继续有效。
 
-## Support
+## 支持
 
-For questions about:
-- **Architecture decisions**: See `ARCHITECTURE_REDESIGN.md` → Section 1 (Current Problems)
-- **Implementation**: See `IMPLEMENTATION_GUIDE.md` → Specific phase
-- **Adding database**: See `app/adapters/README.md` → FAQ
-- **Quick lookup**: See `QUICK_REFERENCE.md`
-- **Visual understanding**: See `CLASS_DIAGRAM.md`
+关于以下问题：
+- **架构决策**：参见 `ARCHITECTURE_REDESIGN.md` → 第 1 节（当前问题）
+- **实现**：参见 `IMPLEMENTATION_GUIDE.md` → 特定阶段
+- **添加数据库**：参见 `app/adapters/README.md` → FAQ
+- **快速查找**：参见 `QUICK_REFERENCE.md`
+- **可视化理解**：参见 `CLASS_DIAGRAM.md`
 
-## Next Steps
+## 下一步
 
-1. **Review**: Read `ARCHITECTURE_SUMMARY.md` for overview
-2. **Decide**: Approve or request changes
-3. **Plan**: Review timeline in `IMPLEMENTATION_GUIDE.md`
-4. **Implement**: Follow `IMPLEMENTATION_GUIDE.md` phase-by-phase
-5. **Extend**: Use `app/adapters/README.md` to add new databases
+1. **审查**：阅读 `ARCHITECTURE_SUMMARY.md` 了解概述
+2. **决定**：批准或请求更改
+3. **计划**：审查 `IMPLEMENTATION_GUIDE.md` 中的时间表
+4. **实现**：跟随 `IMPLEMENTATION_GUIDE.md` 逐步实施
+5. **扩展**：使用 `app/adapters/README.md` 添加新数据库
 
-## Document Metadata
+## 文档元数据
 
-- **Created**: 2024-11-16
-- **Author**: Architecture Team
-- **Status**: Proposal
-- **Version**: 1.0
-- **Total Documentation**: 141 KB, 5,100 lines
-- **Estimated Review Time**: 80 minutes (full read)
-- **Estimated Implementation**: 5 weeks
+- **创建日期**：2024-11-16
+- **作者**：架构团队
+- **状态**：提案
+- **版本**：1.0
+- **文档总量**：141 KB，5,100 行
+- **预计审查时间**：80 分钟（完整阅读）
+- **预计实现时间**：5 周

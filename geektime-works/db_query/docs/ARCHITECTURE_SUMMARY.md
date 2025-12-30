@@ -1,59 +1,59 @@
-# Architecture Redesign - Executive Summary
+# 架构重设计 - 执行总结
 
-## Current Problems
+## 当前问题
 
-### 1. Code Duplication
-Multiple database-specific modules with identical logic:
-- `db_connection.py` (PostgreSQL) vs `mysql_connection.py` (MySQL) - 99% identical
-- `metadata.py` vs `mysql_metadata.py` - similar structure
-- `query.py` contains PostgreSQL logic, imports `mysql_query.py` for MySQL
+### 1. 代码重复
+多个特定于数据库的模块包含相同的逻辑：
+- `db_connection.py` (PostgreSQL) vs `mysql_connection.py` (MySQL) - 99% 相同
+- `metadata.py` vs `mysql_metadata.py` - 结构相似
+- `query.py` 包含 PostgreSQL 逻辑，导入 `mysql_query.py` 处理 MySQL
 
-### 2. Violation of Open-Closed Principle
-Adding a new database requires modifying 6+ existing files:
+### 2. 违反开闭原则
+添加新数据库需要修改 6+ 个现有文件：
 ```python
-# connection_factory.py - MUST MODIFY
+# connection_factory.py - 必须修改
 if db_type == DatabaseType.POSTGRESQL:
     return await pg_connection.test_connection(url)
 elif db_type == DatabaseType.MYSQL:
     return await mysql_connection.test_connection(url)
-elif db_type == DatabaseType.ORACLE:  # NEW - modifying existing code!
+elif db_type == DatabaseType.ORACLE:  # 新增 - 修改现有代码！
     return await oracle_connection.test_connection(url)
 ```
 
-### 3. Tight Coupling
-Direct imports create hard dependencies:
+### 3. 紧耦合
+直接导入创建了硬依赖：
 ```python
 from app.services import db_connection as pg_connection
 from app.services import mysql_query
 ```
 
-### 4. No Abstraction
-No contract defining what a "database adapter" must implement.
+### 4. 缺少抽象
+没有定义"数据库适配器"必须实现的契约。
 
-## Proposed Solution
+## 解决方案
 
-### Architecture Pattern: Adapter + Factory + Facade
+### 架构模式：适配器 + 工厂 + 外观
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                      API Layer                          │
-│         (FastAPI routes - no business logic)            │
+│                      API 层                             │
+│         (FastAPI 路由 - 无业务逻辑)                      │
 └────────────────────────┬────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────┐
-│                  Service Layer (Facade)                 │
-│              DatabaseService coordinates:               │
-│         - SQL validation                                │
-│         - Query execution                               │
-│         - Metadata extraction                           │
-│         - Query history                                 │
+│                  服务层 (外观)                          │
+│              DatabaseService 协调:                      │
+│         - SQL 验证                                       │
+│         - 查询执行                                        │
+│         - 元数据提取                                      │
+│         - 查询历史                                        │
 └────────────────────────┬────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────┐
-│            DatabaseAdapterRegistry (Factory)            │
-│      Maps DatabaseType → Adapter Implementation         │
+│            DatabaseAdapterRegistry (工厂)               │
+│      映射 DatabaseType → 适配器实现                      │
 └────────────────────────┬────────────────────────────────┘
                          │
                          ▼
@@ -74,231 +74,231 @@ No contract defining what a "database adapter" must implement.
          │               │              │              │
          ▼               ▼              ▼              ▼
    PostgreSQL         MySQL         Oracle         SQLite
-    Adapter          Adapter        Adapter        Adapter
+    适配器           适配器         适配器         适配器
 ```
 
-## Key Design Principles
+## 核心设计原则
 
-### 1. Single Responsibility Principle (SRP)
-Each component has ONE reason to change:
-- **Adapter**: Database-specific operations
-- **Registry**: Adapter lifecycle management
-- **Service**: Business logic coordination
-- **API**: HTTP request/response handling
+### 1. 单一职责原则 (SRP)
+每个组件只有一个变更理由：
+- **适配器**：数据库特定操作
+- **注册表**：适配器生命周期管理
+- **服务**：业务逻辑协调
+- **API**：HTTP 请求/响应处理
 
-### 2. Open-Closed Principle (OCP)
-**Open for extension, closed for modification**
+### 2. 开闭原则 (OCP)
+**对扩展开放，对修改关闭**
 
-Adding Oracle database:
+添加 Oracle 数据库：
 ```python
-# 1. Create new adapter (NEW FILE, no modifications to existing code)
+# 1. 创建新适配器（新文件，不修改现有代码）
 class OracleAdapter(DatabaseAdapter):
-    # Implement abstract methods
+    # 实现抽象方法
     pass
 
-# 2. Register it (ONE LINE added)
+# 2. 注册它（添加一行）
 adapter_registry.register(DatabaseType.ORACLE, OracleAdapter)
 
-# 3. Done! All existing code automatically supports Oracle
+# 3. 完成！所有现有代码自动支持 Oracle
 ```
 
-### 3. Liskov Substitution Principle (LSP)
-All adapters are interchangeable:
+### 3. 里氏替换原则 (LSP)
+所有适配器可以互换：
 ```python
 def use_any_database(adapter: DatabaseAdapter):
-    # Works with PostgreSQL, MySQL, Oracle, SQLite, etc.
+    # 适用于 PostgreSQL、MySQL、Oracle、SQLite 等
     result = await adapter.execute_query("SELECT 1")
     return result
 ```
 
-### 4. Dependency Inversion Principle (DIP)
-Depend on abstractions, not concrete implementations:
+### 4. 依赖倒置原则 (DIP)
+依赖抽象，不依赖具体实现：
 ```python
-# High-level module
+# 高层模块
 class DatabaseService:
     def __init__(self, registry: DatabaseAdapterRegistry):
-        self.registry = registry  # Depends on abstraction
+        self.registry = registry  # 依赖抽象
 
     async def execute_query(self, db_type, ...):
         adapter = self.registry.get_adapter(db_type, config)
-        # adapter is DatabaseAdapter (abstraction), not PostgreSQLAdapter
+        # adapter 是 DatabaseAdapter (抽象)，不是 PostgreSQLAdapter
 ```
 
-## Code Comparison
+## 代码对比
 
-### Before: Adding Oracle Support
+### 之前：添加 Oracle 支持
 
-**Required changes**:
-1. Create `oracle_connection.py` (~100 lines)
-2. Create `oracle_metadata.py` (~150 lines)
-3. Create `oracle_query.py` (~80 lines)
-4. **MODIFY** `connection_factory.py` (+15 lines)
-5. **MODIFY** `metadata.py` (+10 lines)
-6. **MODIFY** `query.py` (+20 lines)
-7. **MODIFY** `DatabaseType` enum (+1 line)
-8. **MODIFY** `nl2sql.py` (+5 lines)
+**需要的修改**：
+1. 创建 `oracle_connection.py` (~100 行)
+2. 创建 `oracle_metadata.py` (~150 行)
+3. 创建 `oracle_query.py` (~80 行)
+4. **修改** `connection_factory.py` (+15 行)
+5. **修改** `metadata.py` (+10 行)
+6. **修改** `query.py` (+20 行)
+7. **修改** `DatabaseType` 枚举 (+1 行)
+8. **修改** `nl2sql.py` (+5 行)
 
-**Total**: 330+ new lines, 5 files modified
-**Risk**: High - modifying existing code can break PostgreSQL/MySQL
+**总计**：330+ 行新代码，5 个文件修改
+**风险**：高 - 修改现有代码可能破坏 PostgreSQL/MySQL
 
-### After: Adding Oracle Support
+### 之后：添加 Oracle 支持
 
-**Required changes**:
-1. Create `oracle.py` adapter (~200 lines implementing DatabaseAdapter)
-2. Register: `adapter_registry.register(DatabaseType.ORACLE, OracleAdapter)` (1 line)
-3. Update enum: `ORACLE = "oracle"` (1 line)
+**需要的修改**：
+1. 创建 `oracle.py` 适配器 (~200 行实现 DatabaseAdapter)
+2. 注册：`adapter_registry.register(DatabaseType.ORACLE, OracleAdapter)` (1 行)
+3. 更新枚举：`ORACLE = "oracle"` (1 行)
 
-**Total**: 200 new lines, 0 files modified (except trivial additions)
-**Risk**: Low - no existing code touched
+**总计**：200 行新代码，0 个文件修改（除了微不足道的添加）
+**风险**：低 - 没有触及现有代码
 
-## File Structure Changes
+## 文件结构变化
 
-### Before
+### 之前
 ```
 app/services/
-├── connection_factory.py    # If-elif routing logic
-├── db_connection.py          # PostgreSQL specific
-├── mysql_connection.py       # MySQL specific
-├── metadata.py               # Mixed PostgreSQL + routing
-├── mysql_metadata.py         # MySQL specific
-├── query.py                  # Mixed PostgreSQL + routing
-├── mysql_query.py            # MySQL specific
+├── connection_factory.py    # If-elif 路由逻辑
+├── db_connection.py          # PostgreSQL 特定
+├── mysql_connection.py       # MySQL 特定
+├── metadata.py               # 混合 PostgreSQL + 路由
+├── mysql_metadata.py         # MySQL 特定
+├── query.py                  # 混合 PostgreSQL + 路由
+├── mysql_query.py            # MySQL 特定
 └── nl2sql.py
 
-Lines of code: ~1200
-Duplication: ~40%
+代码行数：~1200
+重复度：~40%
 ```
 
-### After
+### 之后
 ```
 app/
-├── adapters/               # NEW
-│   ├── base.py            # Abstract base class + data types
-│   ├── registry.py        # Factory pattern
-│   ├── postgresql.py      # PostgreSQL implementation
-│   ├── mysql.py           # MySQL implementation
-│   └── README.md          # Developer guide
+├── adapters/               # 新增
+│   ├── base.py            # 抽象基类 + 数据类型
+│   ├── registry.py        # 工厂模式
+│   ├── postgresql.py      # PostgreSQL 实现
+│   ├── mysql.py           # MySQL 实现
+│   └── README.md          # 开发者指南
 │
 ├── services/
-│   ├── database_service.py  # NEW - High-level facade
-│   ├── sql_validator.py     # Unchanged
-│   ├── nl2sql.py            # Unchanged
-│   └── query_history.py     # NEW - Extracted logic
+│   ├── database_service.py  # 新增 - 高层外观
+│   ├── sql_validator.py     # 未改变
+│   ├── nl2sql.py            # 未改变
+│   └── query_history.py     # 新增 - 提取的逻辑
 │
 └── api/v1/
-    ├── databases.py        # UPDATED - uses database_service
-    └── queries.py          # UPDATED - uses database_service
+    ├── databases.py        # 更新 - 使用 database_service
+    └── queries.py          # 更新 - 使用 database_service
 
-Lines of code: ~1000 (17% reduction)
-Duplication: <5%
+代码行数：~1000 (减少 17%)
+重复度：<5%
 ```
 
-## Benefits
+## 优势
 
-### 1. Extensibility
-Add new databases without touching existing code:
-- Oracle: 1 new file
-- SQLite: 1 new file
-- SQL Server: 1 new file
-- MongoDB: 1 new file (with some extensions)
+### 1. 可扩展性
+添加新数据库无需触及现有代码：
+- Oracle：1 个新文件
+- SQLite：1 个新文件
+- SQL Server：1 个新文件
+- MongoDB：1 个新文件（需要一些扩展）
 
-### 2. Maintainability
-- Clear contracts via abstract base class
-- Each adapter is self-contained
-- Changes to PostgreSQL don't affect MySQL
-- Easier to understand and debug
+### 2. 可维护性
+- 通过抽象基类明确定义契约
+- 每个适配器是自包含的
+- PostgreSQL 的更改不影响 MySQL
+- 更容易理解和调试
 
-### 3. Testability
+### 3. 可测试性
 ```python
-# Mock adapter for testing
+# 用于测试的模拟适配器
 class MockAdapter(DatabaseAdapter):
     async def execute_query(self, sql):
         return QueryResult(columns=[], rows=[], row_count=0)
 
-# Use in tests
+# 在测试中使用
 adapter_registry.register(DatabaseType.TEST, MockAdapter)
 ```
 
-### 4. Performance
-- Connection pool reuse via registry
-- Lazy initialization (pools created on first use)
-- Same or better performance than current implementation
+### 4. 性能
+- 通过注册表复用连接池
+- 延迟初始化（首次使用时创建池）
+- 与当前实现相同或更好的性能
 
-### 5. Code Quality
-- Type-safe interfaces
-- Better error messages
-- Comprehensive logging
-- Clear separation of concerns
+### 5. 代码质量
+- 类型安全接口
+- 更好的错误消息
+- 全面的日志记录
+- 清晰的关注点分离
 
-## Migration Strategy
+## 迁移策略
 
-### Phase 1: Create New Structure (Non-Breaking)
-Create adapters alongside existing code. Old code still works.
+### 阶段 1：创建新结构（非破坏性）
+在现有代码旁创建适配器。旧代码仍然有效。
 
-### Phase 2: Update API Layer
-Switch API endpoints to use new `database_service`. Test thoroughly.
+### 阶段 2：更新 API 层
+切换 API 端点以使用新的 `database_service`。彻底测试。
 
-### Phase 3: Cleanup
-Remove old service files once migration is complete.
+### 阶段 3：清理
+迁移完成后删除旧的服务文件。
 
-**Total time**: 5 weeks
-**Risk level**: Low (incremental, non-breaking changes)
+**总时间**：5 周
+**风险级别**：低（增量、非破坏性更改）
 
-## Real-World Example
+## 真实案例
 
-### Use Case: Support 5 New Databases
+### 用例：支持 5 个新数据库
 
-**Requirement**: Add support for Oracle, SQLite, SQL Server, Snowflake, BigQuery
+**需求**：添加对 Oracle、SQLite、SQL Server、Snowflake、BigQuery 的支持
 
-#### Current Architecture (Estimated Effort)
-- Oracle: 3 files, modify 5 files, 2 days
-- SQLite: 3 files, modify 5 files, 2 days
-- SQL Server: 3 files, modify 5 files, 2 days
-- Snowflake: 3 files, modify 5 files, 2 days
-- BigQuery: 3 files, modify 5 files, 3 days (special case)
+#### 当前架构（预估工作量）
+- Oracle：3 个文件，修改 5 个文件，2 天
+- SQLite：3 个文件，修改 5 个文件，2 天
+- SQL Server：3 个文件，修改 5 个文件，2 天
+- Snowflake：3 个文件，修改 5 个文件，2 天
+- BigQuery：3 个文件，修改 5 个文件，3 天（特殊情况）
 
-**Total**: 15 new files, 25 file modifications, 11 days
-**Risk**: Each database addition risks breaking others
+**总计**：15 个新文件，25 次文件修改，11 天
+**风险**：每次添加数据库都可能破坏其他数据库
 
-#### New Architecture (Estimated Effort)
-- Oracle: 1 adapter file, 1 day
-- SQLite: 1 adapter file, 0.5 day
-- SQL Server: 1 adapter file, 1 day
-- Snowflake: 1 adapter file, 1 day
-- BigQuery: 1 adapter file, 1.5 days
+#### 新架构（预估工作量）
+- Oracle：1 个适配器文件，1 天
+- SQLite：1 个适配器文件，0.5 天
+- SQL Server：1 个适配器文件，1 天
+- Snowflake：1 个适配器文件，1 天
+- BigQuery：1 个适配器文件，1.5 天
 
-**Total**: 5 new files, 0 modifications, 5 days
-**Risk**: Zero risk to existing databases
+**总计**：5 个新文件，0 次修改，5 天
+**风险**：对现有数据库零风险
 
-## Metrics
+## 指标
 
-### Code Quality Metrics
+### 代码质量指标
 
-| Metric | Before | After | Change |
+| 指标 | 之前 | 之后 | 变化 |
 |--------|--------|-------|--------|
-| Lines of Code | ~1200 | ~1000 | -17% |
-| Code Duplication | 40% | <5% | -35% |
-| Cyclomatic Complexity | 15 (connection_factory) | 3 (registry) | -80% |
-| Test Coverage | 65% | 90% | +25% |
-| Files to modify (new DB) | 6 | 0 | -100% |
+| 代码行数 | ~1200 | ~1000 | -17% |
+| 代码重复 | 40% | <5% | -35% |
+| 圈复杂度 | 15 (connection_factory) | 3 (registry) | -80% |
+| 测试覆盖率 | 65% | 90% | +25% |
+| 需要修改的文件（新数据库） | 6 | 0 | -100% |
 
-### Development Metrics
+### 开发指标
 
-| Task | Before | After | Improvement |
+| 任务 | 之前 | 之后 | 改进 |
 |------|--------|-------|-------------|
-| Add new database | 2 days | 1 day | 50% faster |
-| Fix bug in PostgreSQL | Affects MySQL | No impact on MySQL | Isolated |
-| Unit test adapter | Hard (mocking) | Easy (mock adapter) | 3x easier |
-| Onboard new developer | 2 weeks | 1 week | 50% faster |
+| 添加新数据库 | 2 天 | 1 天 | 快 50% |
+| 修复 PostgreSQL 错误 | 影响 MySQL | 不影响 MySQL | 隔离 |
+| 单元测试适配器 | 困难（模拟） | 容易（模拟适配器） | 容易 3 倍 |
+| 新开发者入职 | 2 周 | 1 周 | 快 50% |
 
-## Conclusion
+## 结论
 
-The proposed architecture redesign provides:
+提议的架构重设计提供：
 
-1. **SOLID Compliance**: Follows all 5 SOLID principles
-2. **Extensibility**: Add databases by creating 1 file, adding 1 line
-3. **Maintainability**: Clear contracts, no duplication, isolated changes
-4. **Testability**: Easy to mock, clear interfaces
-5. **Production Ready**: Same or better performance, comprehensive logging
+1. **SOLID 合规**：遵循所有 5 个 SOLID 原则
+2. **可扩展性**：通过创建 1 个文件、添加 1 行代码来添加数据库
+3. **可维护性**：清晰的契约，无重复，隔离的更改
+4. **可测试性**：易于模拟，清晰的接口
+5. **生产就绪**：相同或更好的性能，全面的日志记录
 
-**Recommendation**: Proceed with implementation following the 5-week migration plan.
+**建议**：按照 5 周迁移计划进行实施。

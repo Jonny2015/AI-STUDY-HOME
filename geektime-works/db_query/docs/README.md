@@ -1,49 +1,64 @@
-# Database Query Tool Backend
+# 数据库查询工具文档
 
-FastAPI backend for the Database Query Tool application.
+欢迎来到数据库查询工具的文档中心！这里包含了项目架构、实现指南和快速参考等详细文档。
 
-## Setup
+## 📚 文档目录
 
-1. Install dependencies:
-```bash
-uv sync
-```
+### 快速入门
+- **[快速参考](./QUICK_REFERENCE.md)** - 数据库适配器架构和常用模式快速参考
 
-2. Create `.env` file from `.env.example`:
-```bash
-cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
-```
+### 架构文档
+- **[架构总结](./ARCHITECTURE_SUMMARY.md)** - 项目整体架构设计概述
+- **[架构索引](./ARCHITECTURE_INDEX.md)** - 按主题分类的架构概念索引
+- **[架构重设计](./ARCHITECTURE_REDESIGN.md)** - 架构演进和重构历史
+- **[类图](./CLASS_DIAGRAM.md)** - 核心组件类关系图
 
-3. Run database migrations:
-```bash
-alembic upgrade head
-```
+### 开发指南
+- **[实现指南](./IMPLEMENTATION_GUIDE.md)** - 详细的实现步骤和最佳实践
+- **[MySQL 支持](./MYSQL_SUPPORT.md)** - MySQL 数据库支持实现详情
 
-4. Start the development server:
-```bash
-uvicorn app.main:app --reload
-```
+## 🎯 按使用场景查找
 
-The API will be available at `http://localhost:8000`
-API documentation at `http://localhost:8000/docs`
+### 我想添加新的数据库支持
+→ 阅读快速参考中的"添加新数据库（5步）"部分
 
-## Project Structure
+### 我想了解项目架构
+→ 从架构总结开始，然后查看类图了解组件关系
 
-- `app/` - Application code
-  - `main.py` - FastAPI application entry point
-  - `config.py` - Configuration using Pydantic Settings
-  - `database.py` - SQLite database setup
-  - `models/` - SQLModel entities and Pydantic schemas
-  - `services/` - Business logic services
-  - `api/v1/` - API route handlers
-- `tests/` - Test files
-- `alembic/` - Database migrations
+### 我想贡献代码
+→ 查看实现指南了解开发规范和最佳实践
 
-## Development
+### 我想添加 MySQL 支持
+→ 阅读 MySQL 支持文档了解具体实现
 
-- Python 3.12+
-- Uses `uv` for package management
-- Uses `ruff` for linting
-- Uses `mypy` for type checking
-- Uses `pytest` for testing
+### 我想快速查找某个概念
+→ 使用架构索引进行主题式查找
+
+## 📖 阅读顺序建议
+
+### 初次接触项目
+1. 快速参考 - 了解整体架构
+2. 架构总结 - 理解设计思路
+3. 类图 - 理解组件关系
+
+### 准备开发新功能
+1. 实现指南 - 了解开发规范
+2. 快速参考 - 查找相关模式
+3. 架构索引 - 深入理解相关概念
+
+### 准备添加数据库支持
+1. 快速参考 - "添加新数据库"部分
+2. MySQL 支持 - 参考现有实现
+3. 类图 - 理解适配器接口
+
+## 🔧 文档维护
+
+这些文档反映了代码库的当前状态。如果在代码更改后发现文档过时，请更新相应的文档。
+
+## 💡 提示
+
+- 大部分文档包含代码示例，可以直接复制使用
+- 架构文档包含 UML 图和详细说明
+- 快速参考是日常工作最常查阅的文档
+
+**开始探索吧！** 🚀

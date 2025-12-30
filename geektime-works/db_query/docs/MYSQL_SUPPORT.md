@@ -1,10 +1,10 @@
-# MySQL Support Documentation
+# MySQL 支持文档
 
-## Overview
+## 概述
 
-The db_query backend now supports both PostgreSQL and MySQL databases. The system automatically detects the database type from the connection URL and routes operations to the appropriate service.
+db_query 后端现在同时支持 PostgreSQL 和 MySQL 数据库。系统会自动从连接 URL 检测数据库类型，并将操作路由到相应的服务。
 
-## Connection URL Formats
+## 连接 URL 格式
 
 ### PostgreSQL
 ```
@@ -18,38 +18,38 @@ mysql://user:password@host:port/database
 mysql+aiomysql://user:password@host:port/database
 ```
 
-## Examples
+## 示例
 
-### Connecting to MySQL
+### 连接到 MySQL
 
-**Example: Local MySQL database**
+**示例：本地 MySQL 数据库**
 ```bash
 curl -X PUT "http://localhost:8000/api/v1/dbs/my_todo_db" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "mysql://root@localhost:3306/todo_db",
-    "description": "Local MySQL todo database"
+    "description": "本地 MySQL 待办事项数据库"
   }'
 ```
 
-**Example: Remote MySQL with password**
+**示例：带密码的远程 MySQL**
 ```bash
 curl -X PUT "http://localhost:8000/api/v1/dbs/prod_db" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "mysql://user:password@db.example.com:3306/mydb",
     "dbType": "mysql",
-    "description": "Production MySQL database"
+    "description": "生产 MySQL 数据库"
   }'
 ```
 
-### Database Type Detection
+### 数据库类型检测
 
-The system automatically detects the database type from the URL scheme:
-- `postgresql://` or `postgres://` → PostgreSQL
-- `mysql://` or `mysql+aiomysql://` → MySQL
+系统会自动从 URL scheme 检测数据库类型：
+- `postgresql://` 或 `postgres://` → PostgreSQL
+- `mysql://` 或 `mysql+aiomysql://` → MySQL
 
-You can also explicitly specify the `dbType` parameter (optional):
+你也可以显式指定 `dbType` 参数（可选）：
 ```json
 {
   "url": "mysql://root@localhost:3306/todo_db",
@@ -57,26 +57,26 @@ You can also explicitly specify the `dbType` parameter (optional):
 }
 ```
 
-## Features
+## 功能
 
-### 1. Metadata Extraction
+### 1. 元数据提取
 
-MySQL metadata extraction includes:
-- Tables and views from all user schemas
-- Column information (name, data type, nullable, primary key, unique)
-- Row counts for tables
-- Schema information
+MySQL 元数据提取包括：
+- 所有用户架构的表和视图
+- 列信息（名称、数据类型、可空、主键、唯一）
+- 表的行数
+- 架构信息
 
-**Example: Get MySQL metadata**
+**示例：获取 MySQL 元数据**
 ```bash
 curl "http://localhost:8000/api/v1/dbs/my_todo_db"
 ```
 
-### 2. SQL Query Execution
+### 2. SQL 查询执行
 
-Execute SQL SELECT queries against MySQL databases:
+对 MySQL 数据库执行 SQL SELECT 查询：
 
-**Example: Query MySQL database**
+**示例：查询 MySQL 数据库**
 ```bash
 curl -X POST "http://localhost:8000/api/v1/dbs/my_todo_db/query" \
   -H "Content-Type: application/json" \
@@ -85,16 +85,16 @@ curl -X POST "http://localhost:8000/api/v1/dbs/my_todo_db/query" \
   }'
 ```
 
-**MySQL-specific syntax support:**
-- Backtick identifiers: `` `table_name` ``, `` `column_name` ``
-- MySQL data types: INT, VARCHAR, DATETIME, etc.
-- MySQL LIMIT syntax: `LIMIT 10`
+**MySQL 特定语法支持：**
+- 反引号标识符：`` `table_name` ``, `` `column_name` ``
+- MySQL 数据类型：INT、VARCHAR、DATETIME 等
+- MySQL LIMIT 语法：`LIMIT 10`
 
-### 3. Natural Language to SQL
+### 3. 自然语言转 SQL
 
-Generate MySQL-specific SQL from natural language:
+从自然语言生成 MySQL 特定的 SQL：
 
-**Example: Chinese prompt**
+**示例：中文提示**
 ```bash
 curl -X POST "http://localhost:8000/api/v1/dbs/my_todo_db/query/natural" \
   -H "Content-Type: application/json" \
@@ -103,7 +103,7 @@ curl -X POST "http://localhost:8000/api/v1/dbs/my_todo_db/query/natural" \
   }'
 ```
 
-**Example: English prompt**
+**示例：英文提示**
 ```bash
 curl -X POST "http://localhost:8000/api/v1/dbs/my_todo_db/query/natural" \
   -H "Content-Type: application/json" \
@@ -112,84 +112,84 @@ curl -X POST "http://localhost:8000/api/v1/dbs/my_todo_db/query/natural" \
   }'
 ```
 
-The generated SQL will use MySQL-specific syntax:
+生成的 SQL 将使用 MySQL 特定语法：
 ```sql
 SELECT * FROM `todos` WHERE `completed` = 0 LIMIT 1000
 ```
 
-## Technical Implementation
+## 技术实现
 
-### Architecture
+### 架构
 
-The implementation uses a factory pattern to route operations:
+实现使用工厂模式来路由操作：
 
-1. **Connection Factory** (`app/services/connection_factory.py`)
-   - Routes connection operations based on `db_type`
-   - Manages connection pools for both PostgreSQL and MySQL
+1. **连接工厂** (`app/services/connection_factory.py`)
+   - 基于 `db_type` 路由连接操作
+   - 为 PostgreSQL 和 MySQL 管理连接池
 
-2. **Metadata Factory** (`app/services/metadata.py`)
-   - Routes metadata extraction to appropriate service
-   - Caches metadata in SQLite
+2. **元数据工厂** (`app/services/metadata.py`)
+   - 将元数据提取路由到相应的服务
+   - 在 SQLite 中缓存元数据
 
-3. **Query Factory** (`app/services/query.py`)
-   - Routes query execution based on database type
-   - Validates SQL using appropriate dialect (postgres/mysql)
+3. **查询工厂** (`app/services/query.py`)
+   - 基于数据库类型路由查询执行
+   - 使用适当的方言（postgres/mysql）验证 SQL
 
-### Dependencies
+### 依赖
 
-- **aiomysql**: Async MySQL driver (similar to asyncpg for PostgreSQL)
-- **PyMySQL**: Pure-Python MySQL client library
-- **sqlglot**: SQL parser supporting multiple dialects
+- **aiomysql**：异步 MySQL 驱动（类似于 PostgreSQL 的 asyncpg）
+- **PyMySQL**：纯 Python MySQL 客户端库
+- **sqlglot**：支持多种方言的 SQL 解析器
 
-## Differences Between PostgreSQL and MySQL
+## PostgreSQL 和 MySQL 的区别
 
-### Identifiers
-- **PostgreSQL**: Double quotes `"table_name"`
-- **MySQL**: Backticks `` `table_name` ``
+### 标识符
+- **PostgreSQL**：双引号 `"table_name"`
+- **MySQL**：反引号 `` `table_name` ``
 
-### Data Types
-- **PostgreSQL**: `character varying`, `serial`, `timestamp with time zone`
-- **MySQL**: `VARCHAR`, `AUTO_INCREMENT`, `DATETIME`
+### 数据类型
+- **PostgreSQL**：`character varying`、`serial`、`timestamp with time zone`
+- **MySQL**：`VARCHAR`、`AUTO_INCREMENT`、`DATETIME`
 
-### Schema Qualification
-- **PostgreSQL**: `schema.table` (multiple schemas common)
-- **MySQL**: `database.table` (typically single database)
+### 架构限定
+- **PostgreSQL**：`schema.table`（多个架构很常见）
+- **MySQL**：`database.table`（通常单个数据库）
 
-## Query History
+## 查询历史
 
-All queries (manual and NL2SQL) are saved to query history with the database type:
+所有查询（手动和 NL2SQL）都保存到查询历史中，包含数据库类型：
 ```bash
 curl "http://localhost:8000/api/v1/dbs/my_todo_db/history"
 ```
 
-## Error Handling
+## 错误处理
 
-MySQL-specific errors are properly handled:
-- Connection timeouts
-- Authentication failures
-- Invalid syntax
-- Permission errors
+MySQL 特定的错误得到了正确处理：
+- 连接超时
+- 身份验证失败
+- 无效语法
+- 权限错误
 
-## Testing
+## 测试
 
-### Manual Testing with your `todo_db`
+### 使用你的 `todo_db` 进行手动测试
 
-1. **Create connection:**
+**1. 创建连接：**
 ```bash
 curl -X PUT "http://localhost:8000/api/v1/dbs/todo_db" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "mysql://root@localhost:3306/todo_db",
-    "description": "Test MySQL database"
+    "description": "测试 MySQL 数据库"
   }'
 ```
 
-2. **Get metadata:**
+**2. 获取元数据：**
 ```bash
 curl "http://localhost:8000/api/v1/dbs/todo_db"
 ```
 
-3. **Execute query:**
+**3. 执行查询：**
 ```bash
 curl -X POST "http://localhost:8000/api/v1/dbs/todo_db/query" \
   -H "Content-Type: application/json" \
@@ -198,7 +198,7 @@ curl -X POST "http://localhost:8000/api/v1/dbs/todo_db/query" \
   }'
 ```
 
-4. **Natural language query:**
+**4. 自然语言查询：**
 ```bash
 curl -X POST "http://localhost:8000/api/v1/dbs/todo_db/query/natural" \
   -H "Content-Type: application/json" \
@@ -207,15 +207,15 @@ curl -X POST "http://localhost:8000/api/v1/dbs/todo_db/query/natural" \
   }'
 ```
 
-## Migration Notes
+## 迁移说明
 
-### Existing PostgreSQL Connections
+### 现有的 PostgreSQL 连接
 
-Existing PostgreSQL connections will continue to work without any changes. The `db_type` field defaults to `postgresql` for backward compatibility.
+现有的 PostgreSQL 连接将继续工作，无需任何更改。`db_type` 字段默认为 `postgresql` 以实现向后兼容。
 
-### Database Schema Changes
+### 数据库架构更改
 
-The `DatabaseConnection` model now includes a `db_type` field:
+`DatabaseConnection` 模型现在包含 `db_type` 字段：
 ```python
 class DatabaseConnection(SQLModel, table=True):
     name: str
@@ -225,70 +225,70 @@ class DatabaseConnection(SQLModel, table=True):
     ...
 ```
 
-SQLModel will automatically handle the schema migration when the application starts.
+SQLModel 将在应用启动时自动处理架构迁移。
 
-## Troubleshooting
+## 故障排查
 
-### Connection Issues
+### 连接问题
 
-**Problem**: Cannot connect to MySQL
+**问题**：无法连接到 MySQL
 ```
 Connection test failed: Can't connect to MySQL server
 ```
 
-**Solutions**:
-1. Verify MySQL is running: `mysql -u root -p`
-2. Check host/port: Use `localhost` or `127.0.0.1`
-3. Verify credentials in connection URL
-4. Check MySQL allows remote connections (if needed)
+**解决方案**：
+1. 验证 MySQL 正在运行：`mysql -u root -p`
+2. 检查主机/端口：使用 `localhost` 或 `127.0.0.1`
+3. 验证连接 URL 中的凭据
+4. 检查 MySQL 是否允许远程连接（如果需要）
 
-### Metadata Extraction Issues
+### 元数据提取问题
 
-**Problem**: Empty metadata returned
+**问题**：返回空元数据
 ```json
 {"tables": [], "views": []}
 ```
 
-**Solutions**:
-1. Verify database exists: `SHOW DATABASES;`
-2. Check user permissions: `SHOW GRANTS;`
-3. Ensure tables exist: `SHOW TABLES;`
+**解决方案**：
+1. 验证数据库存在：`SHOW DATABASES;`
+2. 检查用户权限：`SHOW GRANTS;`
+3. 确保表存在：`SHOW TABLES;`
 
-### Query Execution Issues
+### 查询执行问题
 
-**Problem**: SQL syntax errors
+**问题**：SQL 语法错误
 ```
 SQL parse error: ...
 ```
 
-**Solutions**:
-1. Use MySQL-specific syntax (backticks for identifiers)
-2. Verify query with `mysql` CLI first
-3. Check LIMIT clause is included (auto-added if missing)
+**解决方案**：
+1. 使用 MySQL 特定语法（标识符使用反引号）
+2. 先使用 `mysql` CLI 验证查询
+3. 检查是否包含 LIMIT 子句（如果缺失则自动添加）
 
-## API Changes
+## API 更改
 
-### Request Schema
+### 请求架构
 
-The `DatabaseConnectionInput` schema now supports optional `dbType`:
+`DatabaseConnectionInput` schema 现在支持可选的 `dbType`：
 
 ```typescript
 {
-  url: string;                    // Database connection URL
-  dbType?: "postgresql" | "mysql"; // Optional, auto-detected from URL
-  description?: string;            // Optional description
+  url: string;                    // 数据库连接 URL
+  dbType?: "postgresql" | "mysql"; // 可选，从 URL 自动检测
+  description?: string;            // 可选描述
 }
 ```
 
-### Response Schema
+### 响应架构
 
-The `DatabaseConnectionResponse` schema now includes `dbType`:
+`DatabaseConnectionResponse` schema 现在包含 `dbType`：
 
 ```typescript
 {
   name: string;
   url: string;
-  dbType: "postgresql" | "mysql"; // Database type
+  dbType: "postgresql" | "mysql"; // 数据库类型
   description: string | null;
   createdAt: string;
   updatedAt: string;
@@ -297,19 +297,19 @@ The `DatabaseConnectionResponse` schema now includes `dbType`:
 }
 ```
 
-## Performance Considerations
+## 性能考虑
 
-### Connection Pooling
+### 连接池
 
-Both PostgreSQL and MySQL connections use connection pooling:
-- **Min pool size**: 1
-- **Max pool size**: 5
-- **Command timeout**: 60 seconds (PostgreSQL)
+PostgreSQL 和 MySQL 连接都使用连接池：
+- **最小池大小**：1
+- **最大池大小**：5
+- **命令超时**：60 秒（PostgreSQL）
 
-### Metadata Caching
+### 元数据缓存
 
-Metadata is cached in SQLite for 24 hours (configurable via `metadata_cache_hours` setting).
+元数据在 SQLite 中缓存 24 小时（可通过 `metadata_cache_hours` 设置配置）。
 
-### Query Limits
+### 查询限制
 
-All queries are automatically limited to 1000 rows to prevent performance issues.
+所有查询自动限制为 1000 行，以防止性能问题。

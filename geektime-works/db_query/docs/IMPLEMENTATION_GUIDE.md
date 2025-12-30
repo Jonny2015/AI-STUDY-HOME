@@ -1,26 +1,26 @@
-# Implementation Guide: Architecture Redesign
+# 实现指南：架构重设计
 
-## Overview
+## 概述
 
-This guide provides step-by-step instructions for implementing the new architecture. The implementation is designed to be incremental and non-breaking.
+本指南提供了实现新架构的分步说明。实现设计为增量式且非破坏性的。
 
-## Prerequisites
+## 前提条件
 
-- Understanding of the current codebase
-- Familiarity with Python async programming
-- Knowledge of ABC (Abstract Base Classes)
-- Understanding of dependency injection pattern
+- 了解当前代码库
+- 熟悉 Python 异步编程
+- 了解 ABC（抽象基类）
+- 理解依赖注入模式
 
-## Implementation Phases
+## 实现阶段
 
-### Phase 1: Create Adapter Infrastructure (Week 1)
+### 阶段 1：创建适配器基础设施（第 1 周）
 
-#### Task 1.1: Create Base Adapter Module
+#### 任务 1.1：创建基础适配器模块
 
-**File**: `app/adapters/base.py`
+**文件**：`app/adapters/base.py`
 
 ```python
-"""Base classes and data structures for database adapters."""
+"""数据库适配器的基础类和数据结构。"""
 
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Tuple, Optional
@@ -30,14 +30,14 @@ from datetime import datetime
 
 @dataclass
 class ConnectionConfig:
-    """Configuration for database connection.
+    """数据库连接配置。
 
     Attributes:
-        url: Database connection URL
-        name: Connection identifier
-        min_pool_size: Minimum number of connections in pool
-        max_pool_size: Maximum number of connections in pool
-        command_timeout: Timeout for commands in seconds
+        url: 数据库连接 URL
+        name: 连接标识符
+        min_pool_size: 池中最小连接数
+        max_pool_size: 池中最大连接数
+        command_timeout: 命令超时时间（秒）
     """
     url: str
     name: str
@@ -48,19 +48,19 @@ class ConnectionConfig:
 
 @dataclass
 class QueryResult:
-    """Standardized query result.
+    """标准化查询结果。
 
     Attributes:
-        columns: List of column definitions with name and dataType
-        rows: List of row dictionaries
-        row_count: Number of rows returned
+        columns: 列定义列表，包含名称和 dataType
+        rows: 行字典列表
+        row_count: 返回的行数
     """
     columns: List[Dict[str, str]]
     rows: List[Dict[str, Any]]
     row_count: int
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for API response."""
+        """转换为字典以供 API 响应使用。"""
         return {
             "columns": self.columns,
             "rows": self.rows,
@@ -70,17 +70,17 @@ class QueryResult:
 
 @dataclass
 class MetadataResult:
-    """Standardized metadata result.
+    """标准化元数据结果。
 
     Attributes:
-        tables: List of table metadata dictionaries
-        views: List of view metadata dictionaries
+        tables: 表元数据字典列表
+        views: 视图元数据字典列表
     """
     tables: List[Dict[str, Any]]
     views: List[Dict[str, Any]]
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for API response."""
+        """转换为字典以供 API 响应使用。"""
         return {
             "tables": self.tables,
             "views": self.views,
@@ -88,116 +88,111 @@ class MetadataResult:
 
 
 class DatabaseAdapter(ABC):
-    """Abstract base class for database adapters.
+    """数据库适配器的抽象基类。
 
-    All database implementations must inherit from this class and
-    implement all abstract methods. This ensures consistent behavior
-    across different database types.
+    所有数据库实现必须继承此类并实现所有抽象方法。
+    这确保了不同数据库类型之间的一致行为。
 
-    The adapter is responsible for:
-    - Connection management (pooling)
-    - Query execution
-    - Metadata extraction
-    - Database-specific type conversions
+    适配器负责：
+    - 连接管理（池化）
+    - 查询执行
+    - 元数据提取
+    - 数据库特定的类型转换
 
-    Example:
+    示例：
         class PostgreSQLAdapter(DatabaseAdapter):
             async def test_connection(self):
-                # Implementation
+                # 实现
                 pass
     """
 
     def __init__(self, config: ConnectionConfig):
-        """Initialize adapter with connection configuration.
+        """使用连接配置初始化适配器。
 
         Args:
-            config: Connection configuration
+            config: 连接配置
         """
         self.config = config
         self._pool: Optional[Any] = None
 
     @abstractmethod
     async def test_connection(self) -> Tuple[bool, Optional[str]]:
-        """Test database connection.
+        """测试数据库连接。
 
-        This method should attempt to connect to the database and
-        verify that the connection works.
+        此方法应尝试连接到数据库并验证连接是否有效。
 
         Returns:
-            Tuple of (success, error_message)
-            - success: True if connection successful, False otherwise
-            - error_message: Error message if failed, None if successful
+            (success, error_message) 元组
+            - success: 连接成功返回 True，否则返回 False
+            - error_message: 失败时返回错误消息，成功时返回 None
 
-        Example:
+        示例：
             success, error = await adapter.test_connection()
             if not success:
-                print(f"Connection failed: {error}")
+                print(f"连接失败: {error}")
         """
         pass
 
     @abstractmethod
     async def get_connection_pool(self) -> Any:
-        """Get or create connection pool.
+        """获取或创建连接池。
 
-        This method should create a connection pool on first call and
-        return the cached pool on subsequent calls.
+        此方法应在首次调用时创建连接池，并在后续调用中返回缓存的池。
 
         Returns:
-            Database-specific connection pool object
+            数据库特定的连接池对象
 
-        Example:
+        示例：
             pool = await adapter.get_connection_pool()
             async with pool.acquire() as conn:
-                # Use connection
+                # 使用连接
         """
         pass
 
     @abstractmethod
     async def close_connection_pool(self) -> None:
-        """Close connection pool and cleanup resources.
+        """关闭连接池并清理资源。
 
-        This method should close all connections in the pool and
-        release any resources.
+        此方法应关闭池中的所有连接并释放任何资源。
 
-        Example:
+        示例：
             await adapter.close_connection_pool()
         """
         pass
 
     @abstractmethod
     async def extract_metadata(self) -> MetadataResult:
-        """Extract database metadata (tables, columns, etc.).
+        """提取数据库元数据（表、列等）。
 
-        This method should query the database's metadata catalogs
-        (e.g., information_schema, pg_catalog) to get schema information.
+        此方法应查询数据库的元数据目录
+        （例如 information_schema、pg_catalog）以获取架构信息。
 
         Returns:
-            MetadataResult with tables and views
+            包含表和视图的 MetadataResult
 
-        Example:
+        示例：
             metadata = await adapter.extract_metadata()
             for table in metadata.tables:
-                print(f"Table: {table['name']}")
+                print(f"表: {table['name']}")
         """
         pass
 
     @abstractmethod
     async def execute_query(self, sql: str) -> QueryResult:
-        """Execute SQL query.
+        """执行 SQL 查询。
 
-        This method should execute the given SQL query and return
-        results in a standardized format.
+        此方法应执行给定的 SQL 查询并以标准化格式返回结果。
 
         Args:
-            sql: SQL query string (already validated)
+            sql: SQL 查询字符串（已验证）
 
         Returns:
-            QueryResult with columns and rows
+            包含列和行的 QueryResult
 
         Raises:
-            Exception: If query execution fails
+            Exception: 如果查询执行失败
 
-        Example:
+        示例：
             result = await adapter.execute_query("SELECT * FROM users")
             for row in result.rows:
                 print(row)
@@ -206,889 +201,131 @@ class DatabaseAdapter(ABC):
 
     @abstractmethod
     def get_dialect_name(self) -> str:
-        """Get SQL dialect name for this database (for sqlglot).
+        """获取此数据库的 SQL 方言名称（用于 sqlglot）。
 
         Returns:
-            Dialect name (e.g., 'postgres', 'mysql', 'oracle')
+            方言名称（例如 'postgres'、'mysql'、'oracle'）
 
-        Example:
+        示例：
             dialect = adapter.get_dialect_name()  # 'postgres'
         """
         pass
 
     @abstractmethod
     def get_identifier_quote_char(self) -> str:
-        """Get character used for quoting identifiers.
+        """获取用于引用标识符的字符。
 
         Returns:
-            Quote character (e.g., '"' for PostgreSQL, '`' for MySQL)
+            引用字符（例如 PostgreSQL 使用 '"'，MySQL 使用 '`'）
 
-        Example:
+        示例：
             quote = adapter.get_identifier_quote_char()  # '"'
             table_name = f'{quote}my_table{quote}'  # "my_table"
         """
         pass
 
     async def __aenter__(self):
-        """Context manager entry."""
+        """上下文管理器入口。"""
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit - cleanup resources."""
+        """上下文管理器出口 - 清理资源。"""
         await self.close_connection_pool()
 ```
 
-**Validation**:
+**验证**：
 ```bash
-# Test that the module can be imported
+# 测试模块可以被导入
 python -c "from app.adapters.base import DatabaseAdapter, ConnectionConfig"
 ```
 
-#### Task 1.2: Create PostgreSQL Adapter
+#### 任务 1.2：创建 PostgreSQL 适配器
 
-**File**: `app/adapters/postgresql.py`
+**文件**：`app/adapters/postgresql.py`
 
-Extract the PostgreSQL-specific logic from:
-- `app/services/db_connection.py` → connection pool management
-- `app/services/metadata.py` → metadata extraction (extract_postgres_metadata)
-- `app/services/query.py` → query execution (PostgreSQL branch)
+从以下文件提取 PostgreSQL 特定逻辑：
+- `app/services/db_connection.py` → 连接池管理
+- `app/services/metadata.py` → 元数据提取 (extract_postgres_metadata)
+- `app/services/query.py` → 查询执行（PostgreSQL 分支）
 
-```python
-"""PostgreSQL database adapter."""
+（完整的 PostgreSQL 适配器代码示例 - 参考原文档）
 
-import asyncpg
-from typing import Dict, List, Any, Tuple, Optional
-from datetime import datetime
-
-from app.adapters.base import (
-    DatabaseAdapter,
-    ConnectionConfig,
-    QueryResult,
-    MetadataResult,
-)
-
-
-class PostgreSQLAdapter(DatabaseAdapter):
-    """PostgreSQL database adapter using asyncpg."""
-
-    async def test_connection(self) -> Tuple[bool, Optional[str]]:
-        """Test PostgreSQL connection."""
-        try:
-            conn = await asyncpg.connect(self.config.url)
-            await conn.close()
-            return True, None
-        except Exception as e:
-            return False, str(e)
-
-    async def get_connection_pool(self) -> asyncpg.Pool:
-        """Get or create asyncpg connection pool."""
-        if self._pool is None:
-            self._pool = await asyncpg.create_pool(
-                self.config.url,
-                min_size=self.config.min_pool_size,
-                max_size=self.config.max_pool_size,
-                command_timeout=self.config.command_timeout,
-            )
-        return self._pool
-
-    async def close_connection_pool(self) -> None:
-        """Close PostgreSQL connection pool."""
-        if self._pool is not None:
-            await self._pool.close()
-            self._pool = None
-
-    async def extract_metadata(self) -> MetadataResult:
-        """Extract PostgreSQL metadata from pg_catalog."""
-        pool = await self.get_connection_pool()
-
-        async with pool.acquire() as conn:
-            # Get all tables and views
-            tables_query = """
-                SELECT
-                    schemaname,
-                    tablename,
-                    'table' AS type
-                FROM pg_tables
-                WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
-                UNION ALL
-                SELECT
-                    schemaname,
-                    viewname AS tablename,
-                    'view' AS type
-                FROM pg_views
-                WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
-                ORDER BY schemaname, tablename
-            """
-            tables_rows = await conn.fetch(tables_query)
-
-            tables: List[Dict[str, Any]] = []
-            views: List[Dict[str, Any]] = []
-
-            for row in tables_rows:
-                schema_name = row["schemaname"]
-                table_name = row["tablename"]
-                table_type = row["type"]
-
-                # Get columns for this table/view
-                columns = await self._get_columns(conn, schema_name, table_name)
-
-                # Get row count for tables (not views)
-                row_count = None
-                if table_type == "table":
-                    row_count = await self._get_row_count(conn, schema_name, table_name)
-
-                table_meta = {
-                    "name": table_name,
-                    "type": table_type,
-                    "schemaName": schema_name,
-                    "columns": columns,
-                }
-                if row_count is not None:
-                    table_meta["rowCount"] = row_count
-
-                if table_type == "table":
-                    tables.append(table_meta)
-                else:
-                    views.append(table_meta)
-
-        return MetadataResult(tables=tables, views=views)
-
-    async def _get_columns(
-        self, conn: asyncpg.Connection, schema_name: str, table_name: str
-    ) -> List[Dict[str, Any]]:
-        """Get column metadata for a table/view."""
-        columns_query = """
-            SELECT
-                c.column_name,
-                c.data_type,
-                c.character_maximum_length,
-                c.is_nullable,
-                c.column_default,
-                c.ordinal_position,
-                CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END AS is_primary_key,
-                CASE WHEN uq.column_name IS NOT NULL THEN true ELSE false END AS is_unique
-            FROM information_schema.columns c
-            LEFT JOIN (
-                SELECT kcu.column_name
-                FROM information_schema.table_constraints tc
-                JOIN information_schema.key_column_usage kcu
-                    ON tc.constraint_name = kcu.constraint_name
-                    AND tc.table_schema = kcu.table_schema
-                    AND tc.table_name = kcu.table_name
-                WHERE tc.table_schema = $1
-                    AND tc.table_name = $2
-                    AND tc.constraint_type = 'PRIMARY KEY'
-            ) pk ON c.column_name = pk.column_name
-            LEFT JOIN (
-                SELECT DISTINCT kcu.column_name
-                FROM information_schema.table_constraints tc
-                JOIN information_schema.key_column_usage kcu
-                    ON tc.constraint_name = kcu.constraint_name
-                    AND tc.table_schema = kcu.table_schema
-                    AND tc.table_name = kcu.table_name
-                WHERE tc.table_schema = $1
-                    AND tc.table_name = $2
-                    AND tc.constraint_type = 'UNIQUE'
-            ) uq ON c.column_name = uq.column_name
-            WHERE c.table_schema = $1
-                AND c.table_name = $2
-            ORDER BY c.ordinal_position
-        """
-        columns_rows = await conn.fetch(columns_query, schema_name, table_name)
-
-        columns: List[Dict[str, Any]] = []
-        for col_row in columns_rows:
-            data_type = col_row["data_type"]
-            if col_row["character_maximum_length"]:
-                data_type = f"{data_type}({col_row['character_maximum_length']})"
-
-            column_meta = {
-                "name": col_row["column_name"],
-                "dataType": data_type,
-                "nullable": col_row["is_nullable"] == "YES",
-                "primaryKey": col_row["is_primary_key"],
-                "unique": col_row["is_unique"],
-                "defaultValue": col_row["column_default"],
-            }
-            columns.append(column_meta)
-
-        return columns
-
-    async def _get_row_count(
-        self, conn: asyncpg.Connection, schema_name: str, table_name: str
-    ) -> Optional[int]:
-        """Get row count for a table."""
-        try:
-            count_query = f'SELECT COUNT(*) FROM "{schema_name}"."{table_name}"'
-            count_result = await conn.fetchrow(count_query)
-            if count_result:
-                return count_result[0]
-        except Exception:
-            # If count fails, return None
-            pass
-        return None
-
-    async def execute_query(self, sql: str) -> QueryResult:
-        """Execute query against PostgreSQL."""
-        pool = await self.get_connection_pool()
-
-        async with pool.acquire() as conn:
-            rows = await conn.fetch(sql)
-
-            # Convert to standard format
-            columns: List[Dict[str, str]] = []
-            result_rows: List[Dict[str, Any]] = []
-
-            if rows:
-                # Get column names and types from first row
-                first_row = rows[0]
-                for key, value in first_row.items():
-                    data_type = self._infer_type(value)
-                    columns.append({"name": key, "dataType": data_type})
-
-                # Convert all rows
-                for row in rows:
-                    result_rows.append(dict(row))
-
-            return QueryResult(
-                columns=columns,
-                rows=result_rows,
-                row_count=len(result_rows)
-            )
-
-    def get_dialect_name(self) -> str:
-        """Get PostgreSQL dialect name."""
-        return "postgres"
-
-    def get_identifier_quote_char(self) -> str:
-        """PostgreSQL uses double quotes."""
-        return '"'
-
-    @staticmethod
-    def _infer_type(value: Any) -> str:
-        """Infer PostgreSQL type from Python value."""
-        if value is None:
-            return "unknown"
-        elif isinstance(value, bool):
-            return "boolean"
-        elif isinstance(value, int):
-            return "integer"
-        elif isinstance(value, float):
-            return "double precision"
-        elif isinstance(value, str):
-            return "character varying"
-        elif isinstance(value, datetime):
-            return "timestamp"
-        else:
-            return str(type(value).__name__)
-```
-
-**Validation**:
+**验证**：
 ```bash
-# Run pytest for adapter tests
+# 运行 pytest 进行适配器测试
 pytest tests/adapters/test_postgresql.py -v
 ```
 
-#### Task 1.3: Create MySQL Adapter
+#### 任务 1.3：创建 MySQL 适配器
 
-**File**: `app/adapters/mysql.py`
+**文件**：`app/adapters/mysql.py`
 
-Similar to PostgreSQL adapter, extract from:
+类似于 PostgreSQL 适配器，从以下文件提取：
 - `app/services/mysql_connection.py`
 - `app/services/mysql_metadata.py`
 - `app/services/mysql_query.py`
 
-```python
-"""MySQL database adapter."""
+（完整的 MySQL 适配器代码示例 - 参考原文档）
 
-import aiomysql
-from typing import Dict, List, Any, Tuple, Optional
-from urllib.parse import urlparse
-from datetime import datetime
+#### 任务 1.4：创建适配器注册表
 
-from app.adapters.base import (
-    DatabaseAdapter,
-    ConnectionConfig,
-    QueryResult,
-    MetadataResult,
-)
+**文件**：`app/adapters/registry.py`
 
+（完整的注册表代码示例 - 参考原文档）
 
-class MySQLAdapter(DatabaseAdapter):
-    """MySQL database adapter using aiomysql."""
-
-    def _parse_url(self, url: str) -> Dict[str, Any]:
-        """Parse MySQL connection URL."""
-        parsed = urlparse(url)
-        return {
-            'host': parsed.hostname or 'localhost',
-            'port': parsed.port or 3306,
-            'user': parsed.username or 'root',
-            'password': parsed.password or '',
-            'db': parsed.path.lstrip('/') if parsed.path else None,
-        }
-
-    async def test_connection(self) -> Tuple[bool, Optional[str]]:
-        """Test MySQL connection."""
-        try:
-            params = self._parse_url(self.config.url)
-            conn = await aiomysql.connect(**params)
-            await conn.ensure_closed()
-            return True, None
-        except Exception as e:
-            return False, str(e)
-
-    async def get_connection_pool(self) -> aiomysql.Pool:
-        """Get or create aiomysql connection pool."""
-        if self._pool is None:
-            params = self._parse_url(self.config.url)
-            self._pool = await aiomysql.create_pool(
-                host=params['host'],
-                port=params['port'],
-                user=params['user'],
-                password=params['password'],
-                db=params['db'],
-                minsize=self.config.min_pool_size,
-                maxsize=self.config.max_pool_size,
-                autocommit=True,
-            )
-        return self._pool
-
-    async def close_connection_pool(self) -> None:
-        """Close MySQL connection pool."""
-        if self._pool is not None:
-            self._pool.close()
-            await self._pool.wait_closed()
-            self._pool = None
-
-    # ... implement extract_metadata() similar to mysql_metadata.py
-    # ... implement execute_query() similar to mysql_query.py
-
-    def get_dialect_name(self) -> str:
-        """Get MySQL dialect name."""
-        return "mysql"
-
-    def get_identifier_quote_char(self) -> str:
-        """MySQL uses backticks."""
-        return "`"
-```
-
-#### Task 1.4: Create Adapter Registry
-
-**File**: `app/adapters/registry.py`
-
-```python
-"""Database adapter registry (Factory pattern)."""
-
-from typing import Dict, Type, List
-import logging
-
-from app.models.database import DatabaseType
-from app.adapters.base import DatabaseAdapter, ConnectionConfig
-from app.adapters.postgresql import PostgreSQLAdapter
-from app.adapters.mysql import MySQLAdapter
-
-logger = logging.getLogger(__name__)
-
-
-class DatabaseAdapterRegistry:
-    """Registry for database adapters (Factory pattern).
-
-    This class maintains a mapping of database types to adapter classes.
-    New database types can be registered without modifying existing code.
-
-    Example:
-        registry = DatabaseAdapterRegistry()
-        config = ConnectionConfig(url="postgresql://...", name="mydb")
-        adapter = registry.get_adapter(DatabaseType.POSTGRESQL, config)
-        result = await adapter.execute_query("SELECT 1")
-    """
-
-    def __init__(self):
-        """Initialize registry with built-in adapters."""
-        self._adapters: Dict[DatabaseType, Type[DatabaseAdapter]] = {}
-        self._instances: Dict[str, DatabaseAdapter] = {}
-
-        # Register built-in adapters
-        self.register(DatabaseType.POSTGRESQL, PostgreSQLAdapter)
-        self.register(DatabaseType.MYSQL, MySQLAdapter)
-
-        logger.info(f"Initialized adapter registry with {len(self._adapters)} adapters")
-
-    def register(
-        self, db_type: DatabaseType, adapter_class: Type[DatabaseAdapter]
-    ) -> None:
-        """Register a database adapter.
-
-        Args:
-            db_type: Database type enum value
-            adapter_class: Adapter class (must inherit from DatabaseAdapter)
-
-        Raises:
-            TypeError: If adapter_class doesn't inherit from DatabaseAdapter
-
-        Example:
-            registry.register(DatabaseType.ORACLE, OracleAdapter)
-        """
-        if not issubclass(adapter_class, DatabaseAdapter):
-            raise TypeError(
-                f"{adapter_class.__name__} must inherit from DatabaseAdapter"
-            )
-
-        self._adapters[db_type] = adapter_class
-        logger.info(f"Registered {adapter_class.__name__} for {db_type.value}")
-
-    def get_adapter(
-        self, db_type: DatabaseType, config: ConnectionConfig
-    ) -> DatabaseAdapter:
-        """Get or create database adapter instance.
-
-        Args:
-            db_type: Database type
-            config: Connection configuration
-
-        Returns:
-            DatabaseAdapter instance
-
-        Raises:
-            ValueError: If database type is not registered
-
-        Example:
-            config = ConnectionConfig(url="mysql://...", name="mydb")
-            adapter = registry.get_adapter(DatabaseType.MYSQL, config)
-        """
-        if db_type not in self._adapters:
-            available = [t.value for t in self._adapters.keys()]
-            raise ValueError(
-                f"Unsupported database type: {db_type.value}. "
-                f"Available types: {available}"
-            )
-
-        # Use connection name and type as cache key
-        cache_key = f"{db_type.value}:{config.name}"
-
-        if cache_key not in self._instances:
-            adapter_class = self._adapters[db_type]
-            self._instances[cache_key] = adapter_class(config)
-            logger.info(f"Created new {adapter_class.__name__} instance for {config.name}")
-
-        return self._instances[cache_key]
-
-    async def close_adapter(self, db_type: DatabaseType, name: str) -> None:
-        """Close and remove adapter instance.
-
-        Args:
-            db_type: Database type
-            name: Connection name
-        """
-        cache_key = f"{db_type.value}:{name}"
-
-        if cache_key in self._instances:
-            adapter = self._instances.pop(cache_key)
-            await adapter.close_connection_pool()
-            logger.info(f"Closed adapter for {name}")
-
-    async def close_all_adapters(self) -> None:
-        """Close all adapter instances."""
-        logger.info(f"Closing {len(self._instances)} adapter instances")
-        for adapter in list(self._instances.values()):
-            await adapter.close_connection_pool()
-        self._instances.clear()
-
-    def is_supported(self, db_type: DatabaseType) -> bool:
-        """Check if database type is supported.
-
-        Args:
-            db_type: Database type to check
-
-        Returns:
-            True if supported, False otherwise
-        """
-        return db_type in self._adapters
-
-    def get_supported_types(self) -> List[DatabaseType]:
-        """Get list of supported database types.
-
-        Returns:
-            List of registered database types
-        """
-        return list(self._adapters.keys())
-
-
-# Global registry instance
-adapter_registry = DatabaseAdapterRegistry()
-```
-
-**Validation**:
+**验证**：
 ```bash
 python -c "from app.adapters.registry import adapter_registry; print(adapter_registry.get_supported_types())"
 ```
 
-### Phase 2: Create Service Layer (Week 2)
+### 阶段 2：创建服务层（第 2 周）
 
-#### Task 2.1: Create Database Service
+#### 任务 2.1：创建数据库服务
 
-**File**: `app/services/database_service.py`
+**文件**：`app/services/database_service.py`
 
-```python
-"""High-level database service (Facade pattern)."""
+（完整的数据库服务代码示例 - 参考原文档）
 
-import time
-from typing import Tuple, Optional
-import logging
-
-from app.models.database import DatabaseType
-from app.adapters.base import ConnectionConfig, QueryResult, MetadataResult
-from app.adapters.registry import DatabaseAdapterRegistry, adapter_registry
-from app.services.sql_validator import validate_and_transform_sql, SqlValidationError
-
-logger = logging.getLogger(__name__)
-
-
-class DatabaseService:
-    """High-level service for database operations (Facade pattern).
-
-    This class provides a simplified interface to database operations,
-    coordinating between adapters, validators, and other components.
-
-    Example:
-        service = DatabaseService(adapter_registry)
-        result = await service.execute_query(
-            DatabaseType.POSTGRESQL,
-            "mydb",
-            "postgresql://...",
-            "SELECT * FROM users"
-        )
-    """
-
-    def __init__(self, registry: DatabaseAdapterRegistry):
-        """Initialize service with adapter registry.
-
-        Args:
-            registry: Database adapter registry
-        """
-        self.registry = registry
-        logger.info("Initialized DatabaseService")
-
-    async def test_connection(
-        self, db_type: DatabaseType, url: str
-    ) -> Tuple[bool, Optional[str]]:
-        """Test database connection.
-
-        Args:
-            db_type: Database type
-            url: Connection URL
-
-        Returns:
-            Tuple of (success, error_message)
-
-        Example:
-            success, error = await service.test_connection(
-                DatabaseType.POSTGRESQL,
-                "postgresql://localhost/test"
-            )
-        """
-        config = ConnectionConfig(url=url, name="test")
-        adapter = self.registry.get_adapter(db_type, config)
-        return await adapter.test_connection()
-
-    async def execute_query(
-        self,
-        db_type: DatabaseType,
-        name: str,
-        url: str,
-        sql: str,
-        limit: int = 1000,
-    ) -> Tuple[QueryResult, int]:
-        """Execute SQL query.
-
-        Args:
-            db_type: Database type
-            name: Connection name
-            url: Connection URL
-            sql: SQL query (will be validated)
-            limit: Maximum rows to return
-
-        Returns:
-            Tuple of (QueryResult, execution_time_ms)
-
-        Raises:
-            SqlValidationError: If SQL is invalid
-            Exception: If query execution fails
-
-        Example:
-            result, time_ms = await service.execute_query(
-                DatabaseType.MYSQL,
-                "mydb",
-                "mysql://...",
-                "SELECT * FROM users"
-            )
-        """
-        # Validate SQL
-        validated_sql = validate_and_transform_sql(sql, limit=limit, db_type=db_type)
-
-        # Get adapter
-        config = ConnectionConfig(url=url, name=name)
-        adapter = self.registry.get_adapter(db_type, config)
-
-        # Execute query with timing
-        start_time = time.time()
-        try:
-            result = await adapter.execute_query(validated_sql)
-            execution_time_ms = int((time.time() - start_time) * 1000)
-
-            logger.info(
-                f"Query executed successfully on {name}: "
-                f"{result.row_count} rows in {execution_time_ms}ms"
-            )
-
-            return result, execution_time_ms
-
-        except Exception as e:
-            execution_time_ms = int((time.time() - start_time) * 1000)
-            logger.error(f"Query failed on {name} after {execution_time_ms}ms: {e}")
-            raise
-
-    async def extract_metadata(
-        self,
-        db_type: DatabaseType,
-        name: str,
-        url: str,
-    ) -> MetadataResult:
-        """Extract database metadata.
-
-        Args:
-            db_type: Database type
-            name: Connection name
-            url: Connection URL
-
-        Returns:
-            MetadataResult
-
-        Example:
-            metadata = await service.extract_metadata(
-                DatabaseType.POSTGRESQL,
-                "mydb",
-                "postgresql://..."
-            )
-        """
-        config = ConnectionConfig(url=url, name=name)
-        adapter = self.registry.get_adapter(db_type, config)
-
-        logger.info(f"Extracting metadata for {name}")
-        metadata = await adapter.extract_metadata()
-        logger.info(
-            f"Extracted metadata for {name}: "
-            f"{len(metadata.tables)} tables, {len(metadata.views)} views"
-        )
-
-        return metadata
-
-    async def close_connection(
-        self,
-        db_type: DatabaseType,
-        name: str,
-    ) -> None:
-        """Close database connection.
-
-        Args:
-            db_type: Database type
-            name: Connection name
-        """
-        await self.registry.close_adapter(db_type, name)
-        logger.info(f"Closed connection for {name}")
-
-
-# Global service instance
-database_service = DatabaseService(adapter_registry)
-```
-
-**Validation**:
+**验证**：
 ```bash
 pytest tests/services/test_database_service.py -v
 ```
 
-### Phase 3: Update API Layer (Week 3)
+### 阶段 3：更新 API 层（第 3 周）
 
-#### Task 3.1: Update Query API
+#### 任务 3.1：更新查询 API
 
-**File**: `app/api/v1/queries.py` (modified)
+**文件**：`app/api/v1/queries.py`（修改）
 
-```python
-"""Query execution API endpoints."""
+（完整的 API 代码示例 - 参考原文档）
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
+#### 任务 3.2：更新数据库 API
 
-from app.database import get_session
-from app.models.database import DatabaseConnection
-from app.models.query import QuerySource
-from app.models.schemas import QueryInput, QueryResult as QueryResultSchema
-from app.services.database_service import database_service
-from app.services.sql_validator import SqlValidationError
-from app.services.query_history import save_query_history
+**文件**：`app/api/v1/databases.py`（修改）
 
-router = APIRouter(prefix="/api/v1/dbs", tags=["queries"])
+更新以使用 `database_service` 代替 `connection_factory`。
 
+### 阶段 4：测试（第 4 周）
 
-@router.post("/{name}/query", response_model=QueryResultSchema)
-async def execute_sql_query(
-    name: str,
-    input_data: QueryInput,
-    session: Session = Depends(get_session),
-) -> QueryResultSchema:
-    """Execute SQL query against a database."""
-    # Get connection
-    statement = select(DatabaseConnection).where(DatabaseConnection.name == name)
-    connection = session.exec(statement).first()
+#### 任务 4.1：单元测试
 
-    if not connection:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Database connection '{name}' not found",
-        )
+为每个适配器创建测试。
 
-    # Execute query using new service
-    try:
-        result, execution_time_ms = await database_service.execute_query(
-            db_type=connection.db_type,
-            name=name,
-            url=connection.url,
-            sql=input_data.sql,
-        )
+#### 任务 4.2：集成测试
 
-        # Save successful query to history
-        await save_query_history(
-            session=session,
-            database_name=name,
-            sql=input_data.sql,
-            row_count=result.row_count,
-            execution_time_ms=execution_time_ms,
-            success=True,
-            error_message=None,
-            query_source=QuerySource.MANUAL,
-        )
+创建服务层集成测试。
 
-        # Convert to API schema
-        return QueryResultSchema(
-            columns=result.columns,
-            rows=result.rows,
-            rowCount=result.row_count,
-            executionTimeMs=execution_time_ms,
-            sql=input_data.sql,
-        )
+#### 任务 4.3：契约测试
 
-    except SqlValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Query execution failed: {str(e)}",
-        )
-```
+确保所有适配器实现契约。
 
-#### Task 3.2: Update Database API
+### 阶段 5：清理和文档（第 5 周）
 
-**File**: `app/api/v1/databases.py` (modified)
+#### 任务 5.1：删除旧代码
 
-Update to use `database_service` instead of `connection_factory`.
+所有测试通过后：
 
-### Phase 4: Testing (Week 4)
-
-#### Task 4.1: Unit Tests
-
-Create tests for each adapter:
-
-```python
-# tests/adapters/test_postgresql.py
-
-import pytest
-from app.adapters.postgresql import PostgreSQLAdapter
-from app.adapters.base import ConnectionConfig
-
-@pytest.mark.asyncio
-async def test_postgresql_adapter_connection():
-    config = ConnectionConfig(
-        url="postgresql://localhost/test",
-        name="test"
-    )
-    adapter = PostgreSQLAdapter(config)
-
-    success, error = await adapter.test_connection()
-    assert success is True or isinstance(error, str)
-
-@pytest.mark.asyncio
-async def test_postgresql_adapter_query():
-    # ... implementation
-    pass
-```
-
-#### Task 4.2: Integration Tests
-
-```python
-# tests/integration/test_database_service.py
-
-@pytest.mark.asyncio
-async def test_service_with_postgres():
-    from app.services.database_service import database_service
-    from app.models.database import DatabaseType
-
-    result, time_ms = await database_service.execute_query(
-        DatabaseType.POSTGRESQL,
-        "test",
-        "postgresql://localhost/test",
-        "SELECT 1 as num"
-    )
-
-    assert result.row_count == 1
-    assert time_ms > 0
-```
-
-#### Task 4.3: Contract Tests
-
-Ensure all adapters implement the contract:
-
-```python
-# tests/adapters/test_adapter_contract.py
-
-import pytest
-from app.adapters.postgresql import PostgreSQLAdapter
-from app.adapters.mysql import MySQLAdapter
-from app.adapters.base import DatabaseAdapter
-
-@pytest.mark.parametrize("adapter_class", [
-    PostgreSQLAdapter,
-    MySQLAdapter,
-])
-def test_adapter_implements_contract(adapter_class):
-    """Verify all adapters implement DatabaseAdapter contract."""
-    assert issubclass(adapter_class, DatabaseAdapter)
-
-    # Check all methods exist
-    required_methods = [
-        'test_connection',
-        'get_connection_pool',
-        'close_connection_pool',
-        'extract_metadata',
-        'execute_query',
-        'get_dialect_name',
-        'get_identifier_quote_char',
-    ]
-
-    for method in required_methods:
-        assert hasattr(adapter_class, method)
-```
-
-### Phase 5: Cleanup and Documentation (Week 5)
-
-#### Task 5.1: Remove Old Code
-
-Once all tests pass:
-
-1. Delete old service files:
+1. 删除旧的服务文件：
 ```bash
 rm app/services/connection_factory.py
 rm app/services/db_connection.py
@@ -1097,46 +334,46 @@ rm app/services/mysql_metadata.py
 rm app/services/mysql_query.py
 ```
 
-2. Update imports throughout codebase
+2. 更新整个代码库中的导入
 
-#### Task 5.2: Update Documentation
+#### 任务 5.2：更新文档
 
-Update:
+更新：
 - README.md
-- API documentation
-- Create ADAPTER_DEVELOPMENT_GUIDE.md
+- API 文档
+- 创建 ADAPTER_DEVELOPMENT_GUIDE.md
 
-## Rollback Strategy
+## 回滚策略
 
-If issues arise during implementation:
+如果实施过程中出现问题：
 
-1. **Phase 1-2**: Simply delete `app/adapters/` directory
-2. **Phase 3**: Revert API changes (git revert)
-3. **Phase 4**: No rollback needed (tests don't affect production)
-4. **Phase 5**: Restore deleted files from git
+1. **阶段 1-2**：直接删除 `app/adapters/` 目录
+2. **阶段 3**：恢复 API 更改（git revert）
+3. **阶段 4**：无需回滚（测试不影响生产）
+4. **阶段 5**：从 git 恢复删除的文件
 
-## Monitoring During Rollout
+## 部署期间的监控
 
-Monitor these metrics:
-- Response times (should not increase)
-- Error rates (should not increase)
-- Connection pool utilization
-- Memory usage (should decrease slightly due to less duplication)
+监控以下指标：
+- 响应时间（不应增加）
+- 错误率（不应增加）
+- 连接池利用率
+- 内存使用（应略有减少，因为重复更少）
 
-## Success Criteria
+## 成功标准
 
-- All existing tests pass
-- New adapter tests have 90%+ coverage
-- API response times within 5% of baseline
-- No increase in error rates
-- Documentation updated
+- 所有现有测试通过
+- 新适配器测试覆盖率达 90%+
+- API 响应时间在基线的 5% 以内
+- 错误率没有增加
+- 文档已更新
 
-## Timeline
+## 时间表
 
-- Week 1: Adapter infrastructure
-- Week 2: Service layer
-- Week 3: API updates
-- Week 4: Testing
-- Week 5: Cleanup and documentation
+- 第 1 周：适配器基础设施
+- 第 2 周：服务层
+- 第 3 周：API 更新
+- 第 4 周：测试
+- 第 5 周：清理和文档
 
-**Total: 5 weeks for complete migration**
+**总计：5 周完成完整迁移**

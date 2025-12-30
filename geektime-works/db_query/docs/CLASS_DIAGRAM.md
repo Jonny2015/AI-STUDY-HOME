@@ -1,10 +1,10 @@
-# Class Diagram and Relationships
+# 类图和关系
 
-## UML Class Diagram
+## UML 类图
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        <<interface>>                             │
+│                        <<接口>>                                 │
 │                      DatabaseAdapter                             │
 ├─────────────────────────────────────────────────────────────────┤
 │ # config: ConnectionConfig                                       │
@@ -20,7 +20,7 @@
 │ + get_identifier_quote_char(): str                               │
 └─────────────────────────────────────────────────────────────────┘
                                △
-                               │ implements
+                               │ 实现
                 ┌──────────────┼──────────────┐
                 │              │              │
 ┌───────────────┴────────┐ ┌──┴────────────┐ ┌┴──────────────────┐
@@ -28,7 +28,7 @@
 ├────────────────────────┤ ├───────────────┤ ├───────────────────┤
 │ - _pool: asyncpg.Pool  │ │ - _pool: Pool │ │ - _pool: Pool     │
 ├────────────────────────┤ ├───────────────┤ ├───────────────────┤
-│ + All abstract methods │ │ + All methods │ │ + All methods     │
+│ + 所有抽象方法         │ │ + 所有方法    │ │ + 所有方法        │
 │ - _parse_url()         │ │ - _parse_url()│ │ - _parse_url()    │
 │ - _get_columns()       │ │ - _get_tables()│ │ - _extract_meta() │
 │ - _get_row_count()     │ │ - _map_type() │ │ - _map_type()     │
@@ -51,7 +51,7 @@
 │ + get_supported_types(): List[DatabaseType]                     │
 └─────────────────────────────────────────────────────────────────┘
                                │
-                               │ creates and manages
+                               │ 创建和管理
                                ▼
                        DatabaseAdapter
 
@@ -68,13 +68,13 @@
 │ + close_connection(type, name): None                            │
 └─────────────────────────────────────────────────────────────────┘
                                │
-                               │ uses
+                               │ 使用
                                ▼
                   DatabaseAdapterRegistry
 
 
 ┌─────────────────────────────────────────────────────────────────┐
-│                       FastAPI Router                             │
+│                       FastAPI 路由                              │
 │                    (queries.py, databases.py)                    │
 ├─────────────────────────────────────────────────────────────────┤
 │ + POST   /api/v1/dbs/{name}/query                               │
@@ -86,12 +86,12 @@
 │ + DELETE /api/v1/dbs/{name}                                     │
 └─────────────────────────────────────────────────────────────────┘
                                │
-                               │ depends on
+                               │ 依赖
                                ▼
                        DatabaseService
 ```
 
-## Data Classes
+## 数据类
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -126,12 +126,12 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Sequence Diagrams
+## 序列图
 
-### Query Execution Flow
+### 查询执行流程
 
 ```
-Client          API Router      DatabaseService    Registry         Adapter
+客户端          API 路由      数据库服务      注册表         适配器
   │                 │                  │               │               │
   │  POST /query    │                  │               │               │
   ├────────────────>│                  │               │               │
@@ -142,8 +142,8 @@ Client          API Router      DatabaseService    Registry         Adapter
   │                 │                  │ get_adapter() │               │
   │                 │                  ├──────────────>│               │
   │                 │                  │               │               │
-  │                 │                  │               │ [create if    │
-  │                 │                  │               │  not exists]  │
+  │                 │                  │               │ [如不存在则  │
+  │                 │                  │               │   创建]       │
   │                 │                  │               │               │
   │                 │                  │<──────────────┤               │
   │                 │                  │  adapter      │               │
@@ -169,10 +169,10 @@ Client          API Router      DatabaseService    Registry         Adapter
   │                 │                  │               │               │
 ```
 
-### Metadata Extraction Flow
+### 元数据提取流程
 
 ```
-Client          API Router      DatabaseService    Registry         Adapter
+客户端          API 路由      数据库服务      注册表         适配器
   │                 │                  │               │               │
   │  GET /{name}    │                  │               │               │
   ├────────────────>│                  │               │               │
@@ -188,8 +188,8 @@ Client          API Router      DatabaseService    Registry         Adapter
   │                 │                  │ extract_metadata()            │
   │                 │                  ├───────────────┼──────────────>│
   │                 │                  │               │               │
-  │                 │                  │               │  query catalog│
-  │                 │                  │               │  build result │
+  │                 │                  │               │  查询目录    │
+  │                 │                  │               │  构建结果    │
   │                 │                  │               │               │
   │                 │                  │<──────────────┼───────────────┤
   │                 │                  │ MetadataResult│               │
@@ -203,41 +203,40 @@ Client          API Router      DatabaseService    Registry         Adapter
   │                 │                  │               │               │
 ```
 
-### Adapter Registration Flow
+### 适配器注册流程
 
 ```
-Application    Registry         PostgreSQLAdapter    MySQLAdapter
-  Startup         │                     │                  │
+应用启动        注册表         PostgreSQL适配器    MySQL适配器
      │            │                     │                  │
      │ __init__() │                     │                  │
      ├───────────>│                     │                  │
      │            │                     │                  │
      │            │ register(POSTGRESQL, PostgreSQLAdapter)│
      │            ├────────────────────>│                  │
-     │            │    [store mapping]  │                  │
+     │            │    [存储映射]       │                  │
      │            │                     │                  │
      │            │ register(MYSQL, MySQLAdapter)          │
      │            ├────────────────────────────────────────>│
-     │            │    [store mapping]  │                  │
+     │            │    [存储映射]       │                  │
      │            │                     │                  │
      │<───────────┤                     │                  │
      │  registry  │                     │                  │
      │            │                     │                  │
      │            │                     │                  │
-   [ready]        │                     │                  │
+   [就绪]         │                     │                  │
 ```
 
-## Dependency Graph
+## 依赖图
 
 ```
-                                    Application
+                                    应用程序
                                          │
                                          ▼
                                     main.py
                                          │
                     ┌────────────────────┼────────────────────┐
                     ▼                    ▼                    ▼
-             API Layer          DatabaseService      AdapterRegistry
+             API 层             数据库服务         适配器注册表
           (databases.py,             │                      │
            queries.py)               │                      │
                     │                │                      │
@@ -245,148 +244,147 @@ Application    Registry         PostgreSQLAdapter    MySQLAdapter
                                      │
                     ┌────────────────┼────────────────┐
                     ▼                ▼                ▼
-            SQLValidator      QueryHistory      Adapters
+            SQL 验证器       查询历史         适配器
                                               (PostgreSQL,
-                                               MySQL, etc.)
+                                               MySQL, 等.)
                                                      │
                                                      ▼
-                                            Database Drivers
+                                            数据库驱动
                                             (asyncpg, aiomysql)
 ```
 
-## Object Lifecycle
+## 对象生命周期
 
-### Adapter Instance Lifecycle
+### 适配器实例生命周期
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  1. Creation                                                  │
+│  1. 创建                                                      │
 │     config = ConnectionConfig(url=..., name="mydb")          │
 │     adapter = PostgreSQLAdapter(config)                      │
 └──────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  2. Registration (cached in registry)                         │
+│  2. 注册（缓存在注册表中）                                    │
 │     registry._instances["postgresql:mydb"] = adapter         │
 └──────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  3. Connection Pool Creation (lazy)                           │
+│  3. 连接池创建（延迟加载）                                    │
 │     pool = await adapter.get_connection_pool()              │
-│     # Creates pool on first call, returns cached on next     │
+│     # 首次调用时创建池，后续返回缓存的池                       │
 └──────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  4. Usage (multiple queries)                                  │
+│  4. 使用（多个查询）                                          │
 │     result1 = await adapter.execute_query("SELECT...")       │
 │     result2 = await adapter.execute_query("SELECT...")       │
-│     # Reuses same pool                                       │
+│     # 复用同一个池                                            │
 └──────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  5. Cleanup                                                   │
+│  5. 清理                                                      │
 │     await registry.close_adapter(db_type, name)              │
-│     # Closes pool, removes from registry                     │
+│     # 关闭池，从注册表中移除                                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## Design Patterns Used
+## 使用的设计模式
 
-### 1. Abstract Factory Pattern
+### 1. 抽象工厂模式
 ```
-DatabaseAdapterRegistry creates DatabaseAdapter instances
-based on DatabaseType
-```
-
-### 2. Factory Method Pattern
-```
-Each adapter implements factory methods:
-- get_connection_pool() creates database-specific pools
+DatabaseAdapterRegistry 根据 DatabaseType 创建 DatabaseAdapter 实例
 ```
 
-### 3. Facade Pattern
+### 2. 工厂方法模式
 ```
-DatabaseService provides simplified interface to:
-- Adapter registry
-- SQL validation
-- Query execution
-- Metadata extraction
+每个适配器实现工厂方法：
+- get_connection_pool() 创建数据库特定的池
 ```
 
-### 4. Singleton Pattern
+### 3. 外观模式
 ```
-Global instances:
+DatabaseService 提供简化的接口到：
+- 适配器注册表
+- SQL 验证
+- 查询执行
+- 元数据提取
+```
+
+### 4. 单例模式
+```
+全局实例：
 - adapter_registry
 - database_service
 ```
 
-### 5. Strategy Pattern
+### 5. 策略模式
 ```
-Different adapters implement different strategies for:
-- Connection management
-- Metadata extraction
-- Query execution
-```
-
-### 6. Template Method Pattern
-```
-DatabaseAdapter defines template:
-1. Get pool
-2. Acquire connection
-3. Execute operation
-4. Process results
-5. Return standardized format
+不同的适配器为以下操作实现不同的策略：
+- 连接管理
+- 元数据提取
+- 查询执行
 ```
 
-## Relationship Types
-
-### Inheritance
+### 6. 模板方法模式
 ```
-PostgreSQLAdapter ──▷ DatabaseAdapter (is-a)
-MySQLAdapter ──▷ DatabaseAdapter (is-a)
-```
-
-### Composition
-```
-DatabaseService ◆── DatabaseAdapterRegistry (has-a)
-DatabaseAdapter ◆── ConnectionConfig (has-a)
+DatabaseAdapter 定义模板：
+1. 获取池
+2. 获取连接
+3. 执行操作
+4. 处理结果
+5. 返回标准化格式
 ```
 
-### Dependency
-```
-DatabaseService ···> DatabaseAdapter (uses)
-API Router ···> DatabaseService (uses)
-```
+## 关系类型
 
-### Association
+### 继承
 ```
-DatabaseAdapterRegistry ──> DatabaseAdapter (creates)
+PostgreSQLAdapter ──▷ DatabaseAdapter (是一个)
+MySQLAdapter ──▷ DatabaseAdapter (是一个)
 ```
 
-## SOLID Principles Mapping
+### 组合
+```
+DatabaseService ◆── DatabaseAdapterRegistry (拥有一个)
+DatabaseAdapter ◆── ConnectionConfig (拥有一个)
+```
 
-### Single Responsibility
-- **DatabaseAdapter**: Database operations
-- **DatabaseAdapterRegistry**: Adapter lifecycle
-- **DatabaseService**: Business logic coordination
-- **API Router**: HTTP request/response
+### 依赖
+```
+DatabaseService ···> DatabaseAdapter (使用)
+API 路由 ···> DatabaseService (使用)
+```
 
-### Open-Closed
-- **Open**: Add new adapters by creating new classes
-- **Closed**: Existing adapters don't need modification
+### 关联
+```
+DatabaseAdapterRegistry ──> DatabaseAdapter (创建)
+```
 
-### Liskov Substitution
-- All adapters can substitute DatabaseAdapter
+## SOLID 原则映射
 
-### Interface Segregation
-- DatabaseAdapter has focused interface
-- No adapter forced to implement unused methods
+### 单一职责
+- **DatabaseAdapter**：数据库操作
+- **DatabaseAdapterRegistry**：适配器生命周期
+- **DatabaseService**：业务逻辑协调
+- **API 路由**：HTTP 请求/响应
 
-### Dependency Inversion
-- High-level (Service) depends on abstraction (DatabaseAdapter)
-- Low-level (adapters) implement abstraction
-- Not dependent on concrete implementations
+### 开闭原则
+- **开放**：通过创建新类添加新适配器
+- **封闭**：现有适配器无需修改
+
+### 里氏替换
+- 所有适配器可以替换 DatabaseAdapter
+
+### 接口隔离
+- DatabaseAdapter 具有专注的接口
+- 没有适配器被强制实现未使用的方法
+
+### 依赖倒置
+- 高层模块（服务）依赖抽象（DatabaseAdapter）
+- 低层模块（适配器）实现抽象
+- 不依赖具体实现
