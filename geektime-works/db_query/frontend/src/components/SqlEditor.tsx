@@ -21,8 +21,7 @@ export const SqlEditor: React.FC<SqlEditorProps> = ({
   const monacoRef = useRef<Monaco | null>(null);
 
   const handleEditorWillMount = (monaco: Monaco) => {
-    // Configure Monaco to use cdnjs instead of jsdelivr for better accessibility
-    // This is set before the editor is mounted
+    // Configure SQL language
     monaco.languages.setLanguageConfiguration("sql", {
       comments: {
         lineComment: "--",

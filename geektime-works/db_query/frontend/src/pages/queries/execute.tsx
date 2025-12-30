@@ -10,6 +10,7 @@ import { QueryResult, QueryHistoryEntry, QueryInput } from "../../types/query";
 import { SqlEditor } from "../../components/SqlEditor";
 import { ResultTable } from "../../components/ResultTable";
 import { ExportButton } from "../../components/query/ExportButton";
+import { AiExportAssistant } from "../../components/AiExportAssistant";
 
 const { Text } = Typography;
 

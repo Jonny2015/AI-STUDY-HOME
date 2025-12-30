@@ -27,6 +27,7 @@ from app.services.export import (
     FileSizeExceededError,
     ConcurrentTaskLimitError,
 )
+from app.services.sql_validator import validate_sql
 
 
 logger = logging.getLogger(__name__)
@@ -49,15 +50,15 @@ def get_user_id(user_id: str = "default") -> str:
     return user_id
 
 
-@router.post("/dbs/{name}/export", response_model=TaskResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post("/dbs/{name}/export")
 async def create_export_task(
     name: str,
     request: ExportRequest,
     session: Session = Depends(get_session),
     user_id: str = Depends(get_user_id),
-) -> TaskResponse:
+) -> FileResponse:
     """
-    Create a new export task.
+    Create a new export task and return the file directly (simplified synchronous export).
 
     Args:
         name: Database connection name
@@ -66,7 +67,7 @@ async def create_export_task(
         user_id: User ID from headers
 
     Returns:
-        TaskResponse with task ID and initial status
+        FileResponse with the exported file
 
     Raises:
         HTTPException: If database not found or export constraints violated
@@ -84,57 +85,129 @@ async def create_export_task(
     # Parse request parameters
     try:
         export_format = ExportFormat(request.format)
-        export_scope = ExportScope.ALL_DATA if request.exportAll else ExportScope.CURRENT_PAGE
+        export_scope = ExportScope.ALL_DATA if request.export_all else ExportScope.CURRENT_PAGE
     except ValueError as e:
+        logger.error(f"Invalid export format or scope: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid export format or scope: {str(e)}",
         )
 
-    # Generate task ID
-    task_id = str(uuid4())
-
     # Get database adapter
-    config = ConnectionConfig(
-        url=connection.url,
-        name=name,
-        min_pool_size=settings.db_pool_min_size,
-        max_pool_size=settings.db_pool_max_size,
-        command_timeout=settings.db_pool_command_timeout,
-    )
-    adapter = adapter_registry.get_adapter(connection.db_type, config)
-
-    # Create export service
-    export_service = ExportService(session)
-
-    # Execute export asynchronously
     try:
-        task_response = await export_service.execute_export(
-            task_id=task_id,
-            adapter=adapter,
-            sql=request.sql,
-            export_format=export_format,
-            export_scope=export_scope,
-            user_id=user_id,
-            database_name=name,
+        config = ConnectionConfig(
+            url=connection.url,
+            name=name,
+            min_pool_size=settings.db_pool_min_size,
+            max_pool_size=settings.db_pool_max_size,
+            command_timeout=settings.db_pool_command_timeout,
         )
-        logger.info(f"Created export task {task_id} for database {name}")
-        return task_response
+        adapter = adapter_registry.get_adapter(connection.db_type, config)
+    except Exception as e:
+        logger.error(f"Failed to get database adapter: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to initialize database adapter: {str(e)}",
+        )
 
-    except FileSizeExceededError as e:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=str(e),
+    # Generate file path
+    from app.services.export import ExportService
+    export_service = ExportService(session)
+    filename = export_service._generate_filename(export_format)
+    file_path = settings.export_temp_path / filename
+
+    # Execute query and export data
+    try:
+        # Validate SQL first
+        validate_sql(request.sql)
+
+        # Execute query
+        query_result = await adapter.execute_query(request.sql)
+
+        # Helper function to convert values to string representation
+        from datetime import datetime
+        from decimal import Decimal
+
+        def format_value(value):
+            """Convert value to string representation for export."""
+            if value is None:
+                return ''
+            elif isinstance(value, datetime):
+                return value.isoformat()
+            elif isinstance(value, Decimal):
+                return str(value)
+            elif isinstance(value, bytes):
+                return value.decode('utf-8')
+            else:
+                return str(value)
+
+        # Write to file based on format
+        if export_format == ExportFormat.CSV:
+            import csv
+            with open(file_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                # Write header
+                writer.writerow([col['name'] for col in query_result.columns])
+                # Write rows - queryResult.rows is List[Dict], extract values in column order
+                for row in query_result.rows:
+                    row_values = [format_value(row.get(col['name'])) for col in query_result.columns]
+                    writer.writerow(row_values)
+
+        elif export_format == ExportFormat.JSON:
+            import json
+            from datetime import datetime
+            from decimal import Decimal
+
+            def json_serializer(obj):
+                """Custom JSON serializer for datetime and other types."""
+                if isinstance(obj, datetime):
+                    return obj.isoformat()
+                elif isinstance(obj, Decimal):
+                    return float(obj)
+                elif isinstance(obj, bytes):
+                    return obj.decode('utf-8')
+                raise TypeError(f"Type {type(obj)} not serializable")
+
+            # queryResult.rows is already List[Dict], perfect for JSON
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(query_result.rows, f, ensure_ascii=False, indent=2, default=json_serializer)
+
+        elif export_format == ExportFormat.MARKDOWN:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(f"# Query Results\n\n")
+                f.write(f"**SQL:** `{request.sql}`\n\n")
+                f.write(f"**Rows:** {len(query_result.rows)}\n\n")
+                f.write(f"## Data\n\n")
+                # Write header
+                f.write("| " + " | ".join([col['name'] for col in query_result.columns]) + " |\n")
+                f.write("| " + " | ".join(["---" for _ in query_result.columns]) + " |\n")
+                # Write rows (first 100 only for markdown)
+                for row in query_result.rows[:100]:
+                    row_values = [format_value(row.get(col['name'])) or 'NULL' for col in query_result.columns]
+                    f.write("| " + " | ".join(row_values) + " |\n")
+
+        logger.info(f"Exported {len(query_result.rows)} rows to {filename}")
+
+        # Determine media type
+        media_types = {
+            "csv": "text/csv",
+            "json": "application/json",
+            "markdown": "text/markdown",
+        }
+        media_type = media_types.get(export_format.value, "application/octet-stream")
+
+        return FileResponse(
+            path=str(file_path),
+            media_type=media_type,
+            filename=filename,
         )
-    except ConcurrentTaskLimitError as e:
+
+    except Exception as e:
+        import traceback
+        logger.error(f"Export failed: {e}\n{traceback.format_exc()}")
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=str(e),
-        )
-    except ExportError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Export failed: {str(e)}",
         )
 
 
@@ -327,8 +400,6 @@ from app.models.schemas import (
     ExportProactiveSuggestionRequest,
     ExportProactiveSuggestionResponse,
     ExportTrackResponseRequest,
-    ExportTrackResponseResponse,
-    ExportAnalyticsResponse,
 )
 from uuid import uuid4
 

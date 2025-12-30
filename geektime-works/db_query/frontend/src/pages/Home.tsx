@@ -15,6 +15,10 @@ import {
   Tabs,
   Modal,
   App,
+  Switch,
+  Progress,
+  Divider,
+  Tooltip,
 } from "antd";
 import {
   PlayCircleOutlined,
@@ -22,6 +26,11 @@ import {
   DatabaseOutlined,
   ReloadOutlined,
   ExclamationCircleOutlined,
+  BulbOutlined,
+  DownloadOutlined,
+  FileTextOutlined,
+  CodeOutlined,
+  FileMarkdownOutlined,
 } from "@ant-design/icons";
 import { apiClient } from "../services/api";
 import { DatabaseMetadata, TableMetadata } from "../types/metadata";
@@ -52,6 +61,12 @@ export const Home: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"manual" | "natural">("manual");
   const [generatingSql, setGeneratingSql] = useState(false);
   const [nlError, setNlError] = useState<string | null>(null);
+
+  // AI Assistant state
+  const [aiAssistantEnabled, setAiAssistantEnabled] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (selectedDatabase) {
@@ -92,6 +107,13 @@ export const Home: React.FC = () => {
       message.success(
         `Query executed - ${response.data.rowCount} rows in ${response.data.executionTimeMs}ms`
       );
+
+      // AI Assistant: Show export prompt if enabled and has results
+      if (aiAssistantEnabled && response.data.rowCount > 0) {
+        setTimeout(() => {
+          setShowExportModal(true);
+        }, 500);
+      }
     } catch (error: any) {
       message.error(error.response?.data?.detail || "Query execution failed");
       setQueryResult(null);
@@ -205,6 +227,129 @@ export const Home: React.FC = () => {
       });
     } else {
       exportToJSON();
+    }
+  };
+
+  const handleExportMarkdown = () => {
+    if (!queryResult || queryResult.rows.length === 0) {
+      message.warning("No data to export");
+      return;
+    }
+
+    // Warn if result is large
+    if (queryResult.rows.length > 10000) {
+      Modal.confirm({
+        title: "Large Dataset Warning",
+        icon: <ExclamationCircleOutlined />,
+        content: `You are about to export ${queryResult.rowCount.toLocaleString()} rows. Markdown will only include first 100 rows. Continue?`,
+        onOk: () => exportToMarkdown(),
+      });
+    } else {
+      exportToMarkdown();
+    }
+  };
+
+  const exportToMarkdown = () => {
+    if (!queryResult) return;
+
+    // Generate Markdown content
+    const headers = queryResult.columns.map((col) => col.name);
+    let mdContent = `# Query Results\n\n`;
+    mdContent += `**Database:** ${selectedDatabase}\n`;
+    mdContent += `**Rows:** ${queryResult.rowCount}\n`;
+    mdContent += `**Execution Time:** ${queryResult.executionTimeMs}ms\n\n`;
+    mdContent += `## Data\n\n`;
+
+    // Add table header
+    mdContent += `| ${headers.join(" | ")} |\n`;
+    mdContent += `| ${headers.map(() => "---").join(" | ")} |\n`;
+
+    // Add table rows (limit to 100 for readability)
+    const maxRows = Math.min(queryResult.rows.length, 100);
+    for (let i = 0; i < maxRows; i++) {
+      const row = queryResult.rows[i];
+      const values = headers.map((header) => {
+        const value = row[header];
+        if (value === null || value === undefined) return "NULL";
+        // Escape pipe characters
+        return String(value).replace(/\|/g, "\\|");
+      });
+      mdContent += `| ${values.join(" | ")} |\n`;
+    }
+
+    if (queryResult.rows.length > 100) {
+      mdContent += `\n*... and ${queryResult.rows.length - 100} more rows*\n`;
+    }
+
+    const blob = new Blob([mdContent], { type: "text/markdown;charset=utf-8;" });
+    const link = document.createElement("a");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+    link.href = URL.createObjectURL(blob);
+    link.download = `${selectedDatabase}_${timestamp}.md`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    message.success(`Exported ${Math.min(queryResult.rowCount, 100)} rows to Markdown`);
+  };
+
+  // Handle export from AI assistant
+  const handleAiExport = async (format: string = "csv", exportAll: boolean = false) => {
+    if (!selectedDatabase || !sql.trim()) {
+      return;
+    }
+
+    setShowExportModal(false);
+    setExporting(true);
+    setExportProgress(0);
+
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setExportProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      // Call export API
+      const response = await fetch(`/api/v1/dbs/${selectedDatabase}/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sql: sql.trim(),
+          format: format,
+          exportAll: exportAll
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      clearInterval(progressInterval);
+      setExportProgress(100);
+
+      // Get the blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `export-${Date.now()}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      message.success("数据导出完成");
+    } catch (error: any) {
+      message.error(`导出失败: ${error.message}`);
+    } finally {
+      setTimeout(() => {
+        setExporting(false);
+        setExportProgress(0);
+      }, 1000);
     }
   };
 
@@ -344,13 +489,40 @@ export const Home: React.FC = () => {
               {selectedDatabase}
             </Title>
           </Space>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={handleRefreshMetadata}
-            style={{ borderWidth: 2, fontWeight: 700 }}
-          >
-            REFRESH
-          </Button>
+          <Space>
+            {/* AI Assistant Switch */}
+            <Space style={{ marginRight: 12 }}>
+              <BulbOutlined
+                style={{
+                  fontSize: 18,
+                  color: aiAssistantEnabled ? "#FFDE00" : "#D9D9D9",
+                }}
+              />
+              <Text
+                strong
+                style={{
+                  fontSize: 12,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                AI 助手
+              </Text>
+              <Switch
+                checked={aiAssistantEnabled}
+                onChange={setAiAssistantEnabled}
+                checkedChildren="开启"
+                unCheckedChildren="关闭"
+              />
+            </Space>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRefreshMetadata}
+              style={{ borderWidth: 2, fontWeight: 700 }}
+            >
+              REFRESH
+            </Button>
+          </Space>
         </div>
 
         {/* Search Bar */}
@@ -625,20 +797,36 @@ export const Home: React.FC = () => {
             }
             extra={
               <Space size={8}>
-                <Button
-                  size="small"
-                  onClick={handleExportCSV}
-                  style={{ fontSize: 12, fontWeight: 700 }}
-                >
-                  EXPORT CSV
-                </Button>
-                <Button
-                  size="small"
-                  onClick={handleExportJSON}
-                  style={{ fontSize: 12, fontWeight: 700 }}
-                >
-                  EXPORT JSON
-                </Button>
+                <Tooltip title="Export as CSV - Compatible with Excel">
+                  <Button
+                    size="small"
+                    icon={<FileTextOutlined />}
+                    onClick={handleExportCSV}
+                    style={{ fontSize: 12, fontWeight: 700 }}
+                  >
+                    CSV
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Export as JSON - For developers">
+                  <Button
+                    size="small"
+                    icon={<CodeOutlined />}
+                    onClick={handleExportJSON}
+                    style={{ fontSize: 12, fontWeight: 700 }}
+                  >
+                    JSON
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Export as Markdown - For documentation">
+                  <Button
+                    size="small"
+                    icon={<FileMarkdownOutlined />}
+                    onClick={handleExportMarkdown}
+                    style={{ fontSize: 12, fontWeight: 700 }}
+                  >
+                    MD
+                  </Button>
+                </Tooltip>
               </Space>
             }
             style={{ borderWidth: 2, borderColor: "#000000" }}
@@ -646,13 +834,13 @@ export const Home: React.FC = () => {
             <Table
               columns={tableColumns}
               dataSource={queryResult.rows}
-              rowKey={(record, index) => {
+              rowKey={(record) => {
                 // Generate a stable unique key based on record content
                 const recordStr = JSON.stringify(record);
                 const hash = recordStr.split('').reduce((acc, char) => {
                   return ((acc << 5) - acc) + char.charCodeAt(0);
                 }, 0);
-                return `row-${hash}-${index}`;
+                return `row-${hash}`;
               }}
               pagination={{
                 pageSize: 50,
@@ -666,6 +854,165 @@ export const Home: React.FC = () => {
             />
           </Card>
         )}
+
+        {/* Export Progress Modal */}
+        <Modal
+          title="数据导出中"
+          open={exporting}
+          footer={null}
+          closable={false}
+          centered
+        >
+          <Space direction="vertical" style={{ width: "100%" }} size="large">
+            <div style={{ textAlign: "center" }}>
+              <DownloadOutlined style={{ fontSize: 48, color: "#16AA98" }} />
+            </div>
+            <Progress
+              percent={exportProgress}
+              status={exportProgress === 100 ? "success" : "active"}
+              strokeColor="#16AA98"
+            />
+            <Text type="secondary" style={{ textAlign: "center", display: "block" }}>
+              {exportProgress < 100 ? "正在导出数据..." : "数据导出完成"}
+            </Text>
+          </Space>
+        </Modal>
+
+        {/* AI Export Prompt Modal */}
+        <Modal
+          title={
+            <Space>
+              <BulbOutlined style={{ color: "#FFDE00" }} />
+              <Text strong>AI 导出助手</Text>
+            </Space>
+          }
+          open={showExportModal}
+          onCancel={() => setShowExportModal(false)}
+          footer={null}
+          centered
+          width={520}
+        >
+          <Space direction="vertical" style={{ width: "100%" }} size="large">
+            <div>
+              <Title level={4} style={{ margin: 0 }}>
+                需要将这次查询结果导出为文件吗？
+              </Title>
+              <Text type="secondary">
+                查询返回 {queryResult?.rowCount || 0} 行数据
+              </Text>
+            </div>
+
+            <Divider style={{ margin: "12px 0" }} />
+
+            <div style={{ textAlign: "center" }}>
+              <Text strong style={{ display: "block", marginBottom: 16 }}>
+                选择导出格式：
+              </Text>
+
+              <Space size="large">
+                {/* CSV 按钮 */}
+                <Tooltip title="CSV 格式 - 适合 Excel 打开" placement="top">
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<FileTextOutlined style={{ fontSize: 28 }} />}
+                    onClick={() => handleAiExport("csv", false)}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>CSV</Text>
+                  </Button>
+                </Tooltip>
+
+                {/* JSON 按钮 */}
+                <Tooltip title="JSON 格式 - 适合程序处理" placement="top">
+                  <Button
+                    size="large"
+                    icon={<CodeOutlined style={{ fontSize: 28 }} />}
+                    onClick={() => handleAiExport("json", false)}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>JSON</Text>
+                  </Button>
+                </Tooltip>
+
+                {/* Markdown 按钮 */}
+                <Tooltip title="Markdown 格式 - 适合文档分享" placement="top">
+                  <Button
+                    size="large"
+                    icon={<FileMarkdownOutlined style={{ fontSize: 28 }} />}
+                    onClick={() => handleAiExport("markdown", false)}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>MD</Text>
+                  </Button>
+                </Tooltip>
+              </Space>
+            </div>
+
+            {/* Ask about exporting all data if result is large */}
+            {(queryResult?.rowCount || 0) > 100 && (
+              <>
+                <Divider style={{ margin: "12px 0" }} />
+                <div style={{ textAlign: "center" }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    检测到大量数据（{queryResult?.rowCount || 0} 行）
+                  </Text>
+                  <br />
+                  <Button
+                    type="link"
+                    onClick={() => {
+                      setShowExportModal(false);
+                      Modal.confirm({
+                        title: "导出全部数据",
+                        content: `查询结果包含 ${queryResult?.rowCount || 0} 行数据，是否导出全部数据？`,
+                        okText: "导出全部",
+                        cancelText: "仅导出当前页",
+                        onOk: () => handleAiExport("csv", true),
+                        onCancel: () => handleAiExport("csv", false),
+                      });
+                    }}
+                    style={{ padding: 0 }}
+                  >
+                    <Text strong style={{ color: "#16AA98" }}>
+                      点击此处导出全部数据 →
+                    </Text>
+                  </Button>
+                </div>
+              </>
+            )}
+
+            <Divider style={{ margin: "12px 0" }} />
+
+            <Button
+              block
+              onClick={() => setShowExportModal(false)}
+              style={{ fontWeight: 600 }}
+            >
+              不需要导出
+            </Button>
+          </Space>
+        </Modal>
       </div>
     </div>
   );
