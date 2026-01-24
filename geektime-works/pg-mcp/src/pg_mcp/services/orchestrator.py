@@ -5,6 +5,8 @@ of the query processing pipeline: SQL generation, validation, execution, and res
 validation. It implements retry logic, error handling, and request tracking.
 """
 
+from __future__ import annotations
+
 import logging
 import uuid
 from typing import Any
@@ -50,7 +52,7 @@ class QueryOrchestrator:
         >>> orchestrator = QueryOrchestrator(
         ...     sql_generator=generator,
         ...     sql_validator=validator,
-        ...     sql_executor=executor,
+        ...     sql_executors={"mydb": executor},
         ...     result_validator=result_validator,
         ...     schema_cache=cache,
         ...     pools={"mydb": pool},
@@ -67,7 +69,7 @@ class QueryOrchestrator:
         self,
         sql_generator: SQLGenerator,
         sql_validator: SQLValidator,
-        sql_executor: SQLExecutor,
+        sql_executors: dict[str, SQLExecutor],
         result_validator: ResultValidator,
         schema_cache: SchemaCache,
         pools: dict[str, Pool],
@@ -79,7 +81,7 @@ class QueryOrchestrator:
         Args:
             sql_generator: SQL generation service.
             sql_validator: SQL validation service.
-            sql_executor: SQL execution service.
+            sql_executors: Dictionary mapping database names to SQL executors.
             result_validator: Result validation service.
             schema_cache: Schema cache instance.
             pools: Dictionary mapping database names to connection pools.
@@ -88,7 +90,7 @@ class QueryOrchestrator:
         """
         self.sql_generator = sql_generator
         self.sql_validator = sql_validator
-        self.sql_executor = sql_executor
+        self.sql_executors = sql_executors
         self.result_validator = result_validator
         self.schema_cache = schema_cache
         self.pools = pools
@@ -134,6 +136,33 @@ class QueryOrchestrator:
         )
 
         try:
+            # Step 0: Validate question length
+            if len(request.question) > self.validation_config.max_question_length:
+                logger.warning(
+                    "Question exceeds maximum length",
+                    extra={
+                        "request_id": request_id,
+                        "question_length": len(request.question),
+                        "max_length": self.validation_config.max_question_length,
+                    },
+                )
+                return QueryResponse(
+                    success=False,
+                    generated_sql=None,
+                    validation=None,
+                    data=None,
+                    error=ErrorDetail(
+                        code=ErrorCode.BAD_REQUEST.value,
+                        message=f"Question exceeds maximum length of {self.validation_config.max_question_length} characters",
+                        details={
+                            "question_length": len(request.question),
+                            "max_length": self.validation_config.max_question_length,
+                        },
+                    ),
+                    confidence=0,
+                    tokens_used=None,
+                )
+
             # Step 1: Resolve database name
             database_name = self._resolve_database(request.database)
             logger.debug(
@@ -195,7 +224,15 @@ class QueryOrchestrator:
             logger.debug("Executing SQL", extra={"request_id": request_id})
             start_time = self._get_current_time_ms()
 
-            results, total_count = await self.sql_executor.execute(generated_sql)
+            # Get the correct executor for the resolved database
+            executor = self.sql_executors.get(database_name)
+            if executor is None:
+                raise DatabaseError(
+                    message=f"No SQL executor available for database '{database_name}'",
+                    details={"database": database_name},
+                )
+
+            results, total_count = await executor.execute(generated_sql)
 
             execution_time_ms = self._get_current_time_ms() - start_time
             logger.info(

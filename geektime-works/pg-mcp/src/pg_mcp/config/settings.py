@@ -5,6 +5,8 @@ and type safety. Configuration is loaded from environment variables with
 sensible defaults.
 """
 
+from __future__ import annotations
+
 from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
@@ -88,6 +90,17 @@ class SecurityConfig(BaseSettings):
         ],
         description="List of blocked PostgreSQL functions",
     )
+    blocked_tables: list[str] = Field(
+        default_factory=list,
+        description="List of blocked table names (e.g., 'users', 'sensitive_data')",
+    )
+    blocked_columns: list[str] = Field(
+        default_factory=list,
+        description="List of blocked column names (e.g., 'password', 'users.ssn')",
+    )
+    allow_explain: bool = Field(
+        default=False, description="Allow EXPLAIN statements for query plan analysis"
+    )
     max_rows: int = Field(default=10000, ge=1, le=100000, description="Maximum rows to return")
     max_execution_time: float = Field(
         default=30.0, ge=1.0, le=300.0, description="Maximum query execution time in seconds"
@@ -107,6 +120,22 @@ class SecurityConfig(BaseSettings):
             return [f.strip() for f in v.split(",") if f.strip()]
         return v
 
+    @field_validator("blocked_tables", mode="before")
+    @classmethod
+    def parse_blocked_tables(cls, v: str | list[str]) -> list[str]:
+        """Parse comma-separated string or list."""
+        if isinstance(v, str):
+            return [f.strip() for f in v.split(",") if f.strip()]
+        return v
+
+    @field_validator("blocked_columns", mode="before")
+    @classmethod
+    def parse_blocked_columns(cls, v: str | list[str]) -> list[str]:
+        """Parse comma-separated string or list."""
+        if isinstance(v, str):
+            return [f.strip() for f in v.split(",") if f.strip()]
+        return v
+
 
 class ValidationConfig(BaseSettings):
     """Query validation configuration."""
@@ -115,9 +144,6 @@ class ValidationConfig(BaseSettings):
 
     max_question_length: int = Field(
         default=10000, ge=1, le=50000, description="Maximum question length in characters"
-    )
-    min_confidence_score: int = Field(
-        default=70, ge=0, le=100, description="Minimum confidence score (0-100)"
     )
 
     # Result validation settings
@@ -195,13 +221,24 @@ class Settings(BaseSettings):
     )
 
     # Nested configurations
-    database: DatabaseConfig = Field(default_factory=DatabaseConfig)
+    databases: list[DatabaseConfig] = Field(default_factory=lambda: [DatabaseConfig()])
     openai: OpenAIConfig = Field(default_factory=OpenAIConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     validation: ValidationConfig = Field(default_factory=ValidationConfig)
     cache: CacheConfig = Field(default_factory=CacheConfig)
     resilience: ResilienceConfig = Field(default_factory=ResilienceConfig)
     observability: ObservabilityConfig = Field(default_factory=ObservabilityConfig)
+
+    @property
+    def database(self) -> DatabaseConfig:
+        """Get primary database configuration (for backward compatibility).
+
+        Returns the first database in the list. This property exists for
+        backward compatibility with code that expects a single database.
+
+        Deprecated: Use databases list instead.
+        """
+        return self.databases[0] if self.databases else DatabaseConfig()
 
     @property
     def is_production(self) -> bool:

@@ -10,14 +10,19 @@ from pydantic import ValidationError
 from pg_mcp.models.errors import (
     DatabaseError,
     ErrorCode,
-    ErrorDetail,
     LLMTimeoutError,
     LLMUnavailableError,
     PgMcpError,
     SecurityViolationError,
     SQLParseError,
 )
-from pg_mcp.models.query import QueryRequest, QueryResponse, QueryResult, ReturnType
+from pg_mcp.models.query import (
+    ErrorDetail,
+    QueryRequest,
+    QueryResponse,
+    QueryResult,
+    ReturnType,
+)
 from pg_mcp.models.schema import (
     ColumnInfo,
     DatabaseSchema,
@@ -391,7 +396,7 @@ class TestErrorModels:
             code=ErrorCode.DATABASE_ERROR,
             message="Connection failed",
         )
-        d = detail.to_dict()
+        d = detail.model_dump()
         assert d["code"] == ErrorCode.DATABASE_ERROR
         assert d["message"] == "Connection failed"
 
@@ -433,13 +438,13 @@ class TestErrorModels:
         err = LLMUnavailableError(message="API unavailable")
         assert err.code == ErrorCode.LLM_UNAVAILABLE
 
-    def test_error_to_detail(self) -> None:
-        """Test exception to ErrorDetail conversion."""
+    def test_error_to_detail_dict(self) -> None:
+        """Test exception to ErrorDetail dict conversion."""
         err = SecurityViolationError(
             message="Blocked function",
             details={"function": "pg_sleep"},
         )
-        detail = err.to_error_detail()
-        assert detail.code == ErrorCode.SECURITY_VIOLATION
-        assert detail.message == "Blocked function"
-        assert detail.details["function"] == "pg_sleep"
+        detail_dict = err.to_error_detail_dict()
+        assert detail_dict["code"] == ErrorCode.SECURITY_VIOLATION
+        assert detail_dict["message"] == "Blocked function"
+        assert detail_dict["details"]["function"] == "pg_sleep"

@@ -4,7 +4,6 @@ from pg_mcp.models.errors import (
     DatabaseConnectionError,
     DatabaseError,
     ErrorCode,
-    ErrorDetail,
     ExecutionTimeoutError,
     LLMError,
     LLMTimeoutError,
@@ -17,6 +16,7 @@ from pg_mcp.models.errors import (
     ValidationError,
 )
 from pg_mcp.models.query import (
+    ErrorDetail,
     QueryRequest,
     QueryResponse,
     QueryResult,

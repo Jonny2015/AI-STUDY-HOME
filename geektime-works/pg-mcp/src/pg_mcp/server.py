@@ -34,7 +34,6 @@ _pools: dict[str, Pool] | None = None
 _schema_cache: SchemaCache | None = None
 _orchestrator: QueryOrchestrator | None = None
 _metrics: MetricsCollector | None = None
-_circuit_breaker: CircuitBreaker | None = None
 _rate_limiter: MultiRateLimiter | None = None
 
 
@@ -68,8 +67,7 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
         ...     # Server is running with all components initialized
         ...     pass
     """
-    global _settings, _pools, _schema_cache, _orchestrator, _metrics
-    global _circuit_breaker, _rate_limiter
+    global _settings, _pools, _schema_cache, _orchestrator, _metrics, _rate_limiter
 
     logger.info("Starting PostgreSQL MCP Server initialization...")
 
@@ -97,16 +95,16 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
         # 3. Create database connection pools
         logger.info("Creating database connection pools...")
         _pools = {}
-        # Note: For single database configuration, we use the main database config
-        pool = await create_pool(_settings.database)
-        _pools[_settings.database.name] = pool
-        logger.info(
-            f"Created connection pool for database '{_settings.database.name}'",
-            extra={
-                "min_size": _settings.database.min_pool_size,
-                "max_size": _settings.database.max_pool_size,
-            },
-        )
+        for db_config in _settings.databases:
+            pool = await create_pool(db_config)
+            _pools[db_config.name] = pool
+            logger.info(
+                f"Created connection pool for database '{db_config.name}'",
+                extra={
+                    "min_size": db_config.min_pool_size,
+                    "max_size": db_config.max_pool_size,
+                },
+            )
 
         # 4. Load Schema cache
         logger.info("Initializing schema cache...")
@@ -143,30 +141,44 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
             start_http_server(_settings.observability.metrics_port)
             logger.info(f"Metrics server started on port {_settings.observability.metrics_port}")
 
-        # 6. Create service components
+        # 6. Initialize resilience components (rate limiter)
+        logger.info("Initializing resilience components...")
+        _rate_limiter = MultiRateLimiter(
+            query_limit=10,  # Can be made configurable
+            llm_limit=5,  # Can be made configurable
+        )
+
+        # 7. Create service components
         logger.info("Initializing service components...")
 
-        # SQL Generator
-        sql_generator = SQLGenerator(_settings.openai)
+        # SQL Generator (with LLM rate limiter and metrics)
+        sql_generator = SQLGenerator(
+            _settings.openai,
+            rate_limiter=_rate_limiter.llm_limiter if _rate_limiter else None,
+            metrics=_metrics,
+        )
 
         # SQL Validator
         sql_validator = SQLValidator(
             config=_settings.security,
-            blocked_tables=None,  # Can be configured via settings if needed
-            blocked_columns=None,  # Can be configured via settings if needed
-            allow_explain=False,
+            blocked_tables=_settings.security.blocked_tables,
+            blocked_columns=_settings.security.blocked_columns,
+            allow_explain=_settings.security.allow_explain,
         )
 
-        # SQL Executor (create one per database)
+        # SQL Executor (create one per database, with query rate limiter and metrics)
         sql_executors: dict[str, SQLExecutor] = {}
-        for db_name, pool in _pools.items():
+        for db_config in _settings.databases:
+            pool = _pools[db_config.name]
             executor = SQLExecutor(
                 pool=pool,
                 security_config=_settings.security,
-                db_config=_settings.database,
+                db_config=db_config,
+                rate_limiter=_rate_limiter.query_limiter if _rate_limiter else None,
+                metrics=_metrics,
             )
-            sql_executors[db_name] = executor
-            logger.info(f"Created SQL executor for database '{db_name}'")
+            sql_executors[db_config.name] = executor
+            logger.info(f"Created SQL executor for database '{db_config.name}'")
 
         # Result Validator
         result_validator = ResultValidator(
@@ -174,27 +186,12 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
             validation_config=_settings.validation,
         )
 
-        # 7. Initialize resilience components
-        logger.info("Initializing resilience components...")
-
-        # Circuit Breaker for LLM calls
-        _circuit_breaker = CircuitBreaker(
-            failure_threshold=_settings.resilience.circuit_breaker_threshold,
-            recovery_timeout=_settings.resilience.circuit_breaker_timeout,
-        )
-
-        # Rate Limiter
-        _rate_limiter = MultiRateLimiter(
-            query_limit=10,  # Can be made configurable
-            llm_limit=5,  # Can be made configurable
-        )
-
         # 8. Create QueryOrchestrator
         logger.info("Creating query orchestrator...")
         _orchestrator = QueryOrchestrator(
             sql_generator=sql_generator,
             sql_validator=sql_validator,
-            sql_executor=sql_executors[_settings.database.name],  # Use primary executor
+            sql_executors=sql_executors,  # Pass all executors for per-DB selection
             result_validator=result_validator,
             schema_cache=_schema_cache,
             pools=_pools,

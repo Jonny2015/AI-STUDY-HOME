@@ -4,17 +4,26 @@ This module provides safe SQL execution with session parameter configuration,
 result serialization, and row limiting to prevent memory overflow.
 """
 
+from __future__ import annotations
+
 import asyncio
 import datetime
 import decimal
 import uuid
-from typing import Any
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING, Any
 
 import asyncpg
 from asyncpg import Connection, Pool
 
 from pg_mcp.config.settings import DatabaseConfig, SecurityConfig
 from pg_mcp.models.errors import DatabaseError, ExecutionTimeoutError
+
+if TYPE_CHECKING:
+    from pg_mcp.resilience.rate_limiter import RateLimiter
+
+    from pg_mcp.observability.metrics import MetricsCollector
 
 
 class SQLExecutor:
@@ -37,6 +46,8 @@ class SQLExecutor:
         pool: Pool,
         security_config: SecurityConfig,
         db_config: DatabaseConfig,
+        rate_limiter: "RateLimiter | None" = None,
+        metrics: "MetricsCollector | None" = None,
     ) -> None:
         """Initialize SQL executor.
 
@@ -44,10 +55,27 @@ class SQLExecutor:
             pool: asyncpg connection pool for database connections.
             security_config: Security configuration including timeouts and limits.
             db_config: Database configuration including connection parameters.
+            rate_limiter: Optional rate limiter for database queries.
+            metrics: Optional metrics collector for observability.
         """
         self.pool = pool
         self.security_config = security_config
         self.db_config = db_config
+        self._rate_limiter = rate_limiter
+        self._metrics = metrics
+
+    @asynccontextmanager
+    async def _rate_limit(self) -> AsyncIterator[None]:
+        """Apply rate limiting if configured.
+
+        Yields:
+            None
+        """
+        if self._rate_limiter is not None:
+            async with self._rate_limiter(timeout=self.security_config.max_execution_time):
+                yield
+        else:
+            yield
 
     async def execute(
         self,
@@ -91,66 +119,81 @@ class SQLExecutor:
         timeout = timeout or self.security_config.max_execution_time
         max_rows = max_rows or self.security_config.max_rows
 
-        try:
-            async with (
-                self.pool.acquire() as connection,
-                connection.transaction(readonly=True),
-            ):
-                # Set session parameters for security
-                await self._set_session_params(connection, timeout)
+        # Track query start time for metrics
+        import time
+        start_time = time.perf_counter()
 
-                # Execute query with timeout
-                try:
-                    records = await asyncio.wait_for(
-                        connection.fetch(sql),
-                        timeout=timeout,
-                    )
-                except TimeoutError as e:
-                    raise ExecutionTimeoutError(
-                        message=f"Query execution exceeded timeout of {timeout} seconds",
-                        details={
-                            "timeout_seconds": timeout,
-                            "sql": sql[:200],  # Include truncated SQL for debugging
-                        },
-                    ) from e
+        # Apply rate limiting for database queries
+        async with self._rate_limit():
+            try:
+                async with (
+                    self.pool.acquire() as connection,
+                    connection.transaction(readonly=True),
+                ):
+                    # Set session parameters for security
+                    await self._set_session_params(connection, timeout)
 
-                # Track total count before limiting
-                total_count = len(records)
+                    # Execute query with timeout
+                    try:
+                        records = await asyncio.wait_for(
+                            connection.fetch(sql),
+                            timeout=timeout,
+                        )
+                    except TimeoutError as e:
+                        # Record failed query metric
+                        if self._metrics:
+                            duration = time.perf_counter() - start_time
+                            self._metrics.db_query_duration.observe(duration)
+                        raise ExecutionTimeoutError(
+                            message=f"Query execution exceeded timeout of {timeout} seconds",
+                            details={
+                                "timeout_seconds": timeout,
+                                "sql": sql[:200],  # Include truncated SQL for debugging
+                            },
+                        ) from e
 
-                # Limit number of returned rows
-                if len(records) > max_rows:
-                    records = records[:max_rows]
+                    # Record successful query metric
+                    if self._metrics:
+                        duration = time.perf_counter() - start_time
+                        self._metrics.db_query_duration.observe(duration)
 
-                # Convert asyncpg.Record to dict
-                results = [dict(record) for record in records]
+                    # Track total count before limiting
+                    total_count = len(records)
 
-                # Serialize special PostgreSQL types
-                results = self._serialize_results(results)
+                    # Limit number of returned rows
+                    if len(records) > max_rows:
+                        records = records[:max_rows]
 
-                return results, total_count
+                    # Convert asyncpg.Record to dict
+                    results = [dict(record) for record in records]
 
-        except ExecutionTimeoutError:
-            # Re-raise timeout errors as-is
-            raise
-        except asyncpg.PostgresError as e:
-            # Wrap PostgreSQL errors
-            raise DatabaseError(
-                message=f"Database query failed: {e!s}",
-                details={
-                    "error_code": e.sqlstate if hasattr(e, "sqlstate") else None,
-                    "error_message": str(e),
-                    "sql": sql[:200],  # Include truncated SQL for debugging
-                },
-            ) from e
-        except Exception as e:
-            # Catch-all for unexpected errors
-            raise DatabaseError(
-                message=f"Unexpected error during query execution: {e!s}",
-                details={
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                },
-            ) from e
+                    # Serialize special PostgreSQL types
+                    results = self._serialize_results(results)
+
+                    return results, total_count
+
+            except ExecutionTimeoutError:
+                # Re-raise timeout errors as-is
+                raise
+            except asyncpg.PostgresError as e:
+                # Wrap PostgreSQL errors
+                raise DatabaseError(
+                    message=f"Database query failed: {e!s}",
+                    details={
+                        "error_code": e.sqlstate if hasattr(e, "sqlstate") else None,
+                        "error_message": str(e),
+                        "sql": sql[:200],  # Include truncated SQL for debugging
+                    },
+                ) from e
+            except Exception as e:
+                # Catch-all for unexpected errors
+                raise DatabaseError(
+                    message=f"Unexpected error during query execution: {e!s}",
+                    details={
+                        "error_type": type(e).__name__,
+                        "error_message": str(e),
+                    },
+                ) from e
 
     async def _set_session_params(
         self,

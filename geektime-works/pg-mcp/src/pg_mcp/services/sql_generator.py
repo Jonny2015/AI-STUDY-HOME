@@ -4,7 +4,11 @@ This module provides the SQLGenerator class that uses OpenAI's LLM to convert
 natural language questions into valid PostgreSQL SQL queries.
 """
 
+from __future__ import annotations
+
 import re
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 from openai import AsyncOpenAI
@@ -17,6 +21,10 @@ if TYPE_CHECKING:
     from openai.types.chat import ChatCompletion
 
     from pg_mcp.models.schema import DatabaseSchema
+
+    from pg_mcp.resilience.rate_limiter import RateLimiter
+
+    from pg_mcp.observability.metrics import MetricsCollector
 
 
 class SQLGenerator:
@@ -35,14 +43,36 @@ class SQLGenerator:
         ... )
     """
 
-    def __init__(self, config: OpenAIConfig) -> None:
+    def __init__(
+        self,
+        config: OpenAIConfig,
+        rate_limiter: "RateLimiter | None" = None,
+        metrics: "MetricsCollector | None" = None,
+    ) -> None:
         """Initialize SQL generator with OpenAI configuration.
 
         Args:
             config: OpenAI configuration including API key and model settings.
+            rate_limiter: Optional rate limiter for LLM API calls.
+            metrics: Optional metrics collector for observability.
         """
         self.config = config
         self.client = AsyncOpenAI(api_key=config.api_key.get_secret_value(), timeout=config.timeout)
+        self._rate_limiter = rate_limiter
+        self._metrics = metrics
+
+    @asynccontextmanager
+    async def _rate_limit(self) -> AsyncIterator[None]:
+        """Apply rate limiting if configured.
+
+        Yields:
+            None
+        """
+        if self._rate_limiter is not None:
+            async with self._rate_limiter(timeout=self.config.timeout):
+                yield
+        else:
+            yield
 
     async def generate(
         self,
@@ -95,61 +125,82 @@ class SQLGenerator:
             error_feedback=error_feedback,
         )
 
-        try:
-            response: ChatCompletion = await self.client.chat.completions.create(
-                model=self.config.model,
-                messages=[
-                    {"role": "system", "content": SQL_GENERATION_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=self.config.temperature,
-                max_tokens=self.config.max_tokens,
-            )
-        except TimeoutError as e:
-            raise LLMTimeoutError(
-                message=f"OpenAI API request timed out after {self.config.timeout}s",
-                details={"timeout": self.config.timeout},
-            ) from e
-        except Exception as e:
-            # Handle various OpenAI errors
-            error_msg = str(e)
-            if "authentication" in error_msg.lower() or "api_key" in error_msg.lower():
-                raise LLMUnavailableError(
-                    message="OpenAI API authentication failed - check API key",
+        # Track LLM call start time for metrics
+        import time
+        start_time = time.perf_counter()
+
+        # Apply rate limiting for LLM calls
+        async with self._rate_limit():
+            try:
+                response: ChatCompletion = await self.client.chat.completions.create(
+                    model=self.config.model,
+                    messages=[
+                        {"role": "system", "content": SQL_GENERATION_SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=self.config.temperature,
+                    max_tokens=self.config.max_tokens,
+                )
+            except TimeoutError as e:
+                # Record failed LLM call
+                if self._metrics:
+                    self._metrics.llm_calls.labels(operation="generate_sql").inc()
+                raise LLMTimeoutError(
+                    message=f"OpenAI API request timed out after {self.config.timeout}s",
+                    details={"timeout": self.config.timeout},
+                ) from e
+            except Exception as e:
+                # Record failed LLM call
+                if self._metrics:
+                    self._metrics.llm_calls.labels(operation="generate_sql").inc()
+                # Handle various OpenAI errors
+                error_msg = str(e)
+                if "authentication" in error_msg.lower() or "api_key" in error_msg.lower():
+                    raise LLMUnavailableError(
+                        message="OpenAI API authentication failed - check API key",
+                        details={"error": error_msg},
+                    ) from e
+                if "rate_limit" in error_msg.lower():
+                    raise LLMUnavailableError(
+                        message="OpenAI API rate limit exceeded",
+                        details={"error": error_msg},
+                    ) from e
+                raise LLMError(
+                    message=f"OpenAI API request failed: {error_msg}",
                     details={"error": error_msg},
                 ) from e
-            if "rate_limit" in error_msg.lower():
-                raise LLMUnavailableError(
-                    message="OpenAI API rate limit exceeded",
-                    details={"error": error_msg},
-                ) from e
-            raise LLMError(
-                message=f"OpenAI API request failed: {error_msg}",
-                details={"error": error_msg},
-            ) from e
 
-        # Extract SQL from response
-        if not response.choices:
-            raise LLMError(
-                message="OpenAI returned empty response",
-                details={"response": response.model_dump()},
-            )
+            # Record LLM call metrics
+            if self._metrics:
+                duration = time.perf_counter() - start_time
+                self._metrics.llm_calls.labels(operation="generate_sql").inc()
+                self._metrics.llm_latency.labels(operation="generate_sql").observe(duration)
+                if response.usage:
+                    tokens = response.usage.total_tokens
+                    self._metrics.llm_tokens_used.labels(operation="generate_sql").inc(tokens)
 
-        content = response.choices[0].message.content
-        if not content:
-            raise LLMError(
-                message="OpenAI returned empty message content",
-                details={"response": response.model_dump()},
-            )
+            # Extract SQL from response
+            if not response.choices:
+                raise LLMError(
+                    message="OpenAI returned empty response",
+                    details={"response": response.model_dump()},
+                )
 
-        sql = self._extract_sql(content)
-        if not sql:
-            raise LLMError(
-                message="Failed to extract SQL from OpenAI response",
-                details={"content": content},
-            )
+            content = response.choices[0].message.content
+            if not content:
+                raise LLMError(
+                    message="OpenAI returned empty message content",
+                    details={"response": response.model_dump()},
+                )
 
-        return sql
+            sql = self._extract_sql(content)
+            if not sql:
+                raise LLMError(
+                    message="Failed to extract SQL from OpenAI response",
+                    details={"content": content},
+                )
+
+            return sql
 
     def _extract_sql(self, content: str) -> str | None:
         """Extract SQL query from LLM response content.
